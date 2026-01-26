@@ -15,7 +15,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_mini_config(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", MINI_CONFIG_PERMISSION_PREFIX))
     {
@@ -27,7 +27,7 @@ async fn get_mini_config(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_mini_config(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", MINI_CONFIG_PERMISSION_PREFIX))
     {

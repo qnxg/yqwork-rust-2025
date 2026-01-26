@@ -35,7 +35,7 @@ async fn get_department_list() -> RouterResult {
 
 #[handler]
 async fn post_department(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:add", DEPARTMENT_PERMISSION_PREFIX))
     {
@@ -55,7 +55,7 @@ async fn post_department(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_department(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", DEPARTMENT_PERMISSION_PREFIX))
     {
@@ -82,7 +82,7 @@ async fn put_department(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_department(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", DEPARTMENT_PERMISSION_PREFIX))
     {

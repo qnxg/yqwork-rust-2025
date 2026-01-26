@@ -56,7 +56,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_goods_record_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", GOODS_RECORD_PERMISSION_PREFIX))
     {
@@ -97,7 +97,7 @@ async fn get_goods_record_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_goods_record(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", GOODS_RECORD_PERMISSION_PREFIX))
     {
@@ -115,7 +115,7 @@ async fn get_goods_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_goods_record(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", GOODS_RECORD_PERMISSION_PREFIX))
     {
@@ -137,7 +137,7 @@ async fn delete_goods_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_goods_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", JIFEN_GOODS_PERMISSION_PREFIX))
     {
@@ -153,7 +153,7 @@ async fn get_goods_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_goods(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:add", JIFEN_GOODS_PERMISSION_PREFIX))
     {
@@ -191,7 +191,7 @@ async fn post_goods(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_goods(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", JIFEN_GOODS_PERMISSION_PREFIX))
     {
@@ -241,7 +241,7 @@ async fn put_goods(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_goods(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", JIFEN_GOODS_PERMISSION_PREFIX))
     {
@@ -266,7 +266,7 @@ async fn delete_goods(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_record_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", JIFEN_RECORD_PERMISSION_PREFIX))
     {
@@ -308,7 +308,7 @@ async fn get_record_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_record(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", JIFEN_RECORD_PERMISSION_PREFIX))
     {
@@ -326,8 +326,8 @@ async fn get_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_record(req: &mut salvo::Request) -> RouterResult {
-    let uid = utils::auth::parse_token(req)?;
-    if !service::qnxg::user::get_user_permission(uid)
+    let user = utils::auth::parse_token(req).await?;
+    if !service::qnxg::user::get_user_permission(user.id)
         .await?
         .has(&format!("{}:add", JIFEN_RECORD_PERMISSION_PREFIX))
     {
@@ -345,9 +345,6 @@ async fn post_record(req: &mut salvo::Request) -> RouterResult {
         desc,
         jifen,
     } = req.extract().await?;
-    let Some(user) = service::qnxg::user::get_user(uid).await? else {
-        return Err(AppError::Unauthorized);
-    };
     let res = service::weihuda::jifen::add_record(&user, &stu_id, jifen, &desc).await?;
     let record = service::weihuda::jifen::get_record(res).await?;
     Ok(record.into())
@@ -355,7 +352,7 @@ async fn post_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_record(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", JIFEN_RECORD_PERMISSION_PREFIX))
     {
@@ -377,7 +374,7 @@ async fn delete_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_rule_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", JIFEN_RULE_PERMISSION_PREFIX))
     {
@@ -393,7 +390,7 @@ async fn get_rule_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_rule(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:add", JIFEN_RULE_PERMISSION_PREFIX))
     {
@@ -433,7 +430,7 @@ async fn post_rule(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_rule(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", JIFEN_RULE_PERMISSION_PREFIX))
     {
@@ -467,7 +464,7 @@ async fn put_rule(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_rule(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", JIFEN_RULE_PERMISSION_PREFIX))
     {

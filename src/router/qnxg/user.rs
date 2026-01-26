@@ -24,8 +24,8 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_user_list(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
-    let permission = service::qnxg::user::get_user_permission(user_id).await?;
+    let user = utils::auth::parse_token(req).await?;
+    let permission = service::qnxg::user::get_user_permission(user.id).await?;
     if !permission.has(&format!("{}:query", USER_PERMISSION_PREFIX)) {
         return Err(AppError::PermissionDenied);
     }
@@ -50,9 +50,6 @@ async fn get_user_list(req: &mut salvo::Request) -> RouterResult {
     let page = page.unwrap_or(1);
     let page_size = page_size.unwrap_or(10);
     // 管理员才能查看所有用户，非管理员只能看看自己所在部门的用户
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     let (count, rows) = if permission.is_admin() {
         service::qnxg::user::get_user_list(
             page,
@@ -88,8 +85,8 @@ async fn get_user_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_user(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
-    let permission = service::qnxg::user::get_user_permission(user_id).await?;
+    let user = utils::auth::parse_token(req).await?;
+    let permission = service::qnxg::user::get_user_permission(user.id).await?;
     if !permission.has(&format!("{}:query", USER_PERMISSION_PREFIX)) {
         return Err(AppError::PermissionDenied);
     }
@@ -99,9 +96,6 @@ async fn get_user(req: &mut salvo::Request) -> RouterResult {
         id: u32,
     }
     let GetUserReq { id } = req.extract().await?;
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     let Some(user_res) = service::qnxg::user::get_user(id).await? else {
         return Ok(().into());
     };
@@ -113,8 +107,8 @@ async fn get_user(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_user(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
-    let permission = service::qnxg::user::get_user_permission(user_id).await?;
+    let user = utils::auth::parse_token(req).await?;
+    let permission = service::qnxg::user::get_user_permission(user.id).await?;
     if !permission.has(&format!("{}:add", USER_PERMISSION_PREFIX)) {
         return Err(AppError::PermissionDenied);
     }
@@ -136,9 +130,6 @@ async fn post_user(req: &mut salvo::Request) -> RouterResult {
     }
     let param: PostUserReq = req.extract().await?;
     let status = UserStatus::from(param.status);
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     // 学号是唯一的
     if service::qnxg::user::get_user_by_stu_id(&param.stu_id)
         .await?
@@ -159,7 +150,7 @@ async fn post_user(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     // 创建的用户的角色比如是创建者的子集
-    let user_roles = service::qnxg::role::get_user_roles(user_id)
+    let user_roles = service::qnxg::role::get_user_roles(user.id)
         .await?
         .into_iter()
         .map(|r| r.id)
@@ -185,8 +176,8 @@ async fn post_user(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_user(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
-    let permission = service::qnxg::user::get_user_permission(user_id).await?;
+    let user = utils::auth::parse_token(req).await?;
+    let permission = service::qnxg::user::get_user_permission(user.id).await?;
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutUserReq {
@@ -217,12 +208,9 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
     let param: PutUserReq = req.extract().await?;
     let status = UserStatus::from(param.status);
     // 没权限的话只能改自己的
-    if !permission.has(&format!("{}:edit", USER_PERMISSION_PREFIX)) && user_id != param.id {
+    if !permission.has(&format!("{}:edit", USER_PERMISSION_PREFIX)) && user.id != param.id {
         return Err(AppError::PermissionDenied);
     }
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     let Some(res_user) = service::qnxg::user::get_user(param.id).await? else {
         return Err(anyhow!("用户不存在").into());
     };
@@ -251,7 +239,7 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
         }
         // 非管理员不能把用户的角色改成自己的子集之外
         if let Some(role_id) = &param.role_id {
-            let user_roles = service::qnxg::role::get_user_roles(user_id)
+            let user_roles = service::qnxg::role::get_user_roles(user.id)
                 .await?
                 .into_iter()
                 .map(|r| r.id)
@@ -302,8 +290,8 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_user(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
-    let permission = service::qnxg::user::get_user_permission(user_id).await?;
+    let user = utils::auth::parse_token(req).await?;
+    let permission = service::qnxg::user::get_user_permission(user.id).await?;
     if !permission.has(&format!("{}:delete", USER_PERMISSION_PREFIX)) {
         return Err(AppError::PermissionDenied);
     }
@@ -313,9 +301,6 @@ async fn delete_user(req: &mut salvo::Request) -> RouterResult {
         id: u32,
     }
     let DeleteUserReq { id } = req.extract().await?;
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     let Some(res_user) = service::qnxg::user::get_user(id).await? else {
         return Err(anyhow!("用户不存在").into());
     };
@@ -324,7 +309,7 @@ async fn delete_user(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     // 不能删自己
-    if user_id == id {
+    if user.id == id {
         return Err(AppError::PermissionDenied);
     }
     service::qnxg::user::delete_user(id).await?;
@@ -333,7 +318,7 @@ async fn delete_user(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_pwd(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
+    let user_id = utils::auth::parse_token(req).await?.id;
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutPwdReq {
@@ -345,10 +330,10 @@ async fn put_pwd(req: &mut salvo::Request) -> RouterResult {
         new_password,
     } = req.extract().await?;
     if service::qnxg::user::get_user(user_id).await?.is_none() {
-        return Err(AppError::PermissionDenied);
+        return Err(AppError::Unauthorized);
     };
     let Some(pwd) = service::qnxg::user::get_user_password(user_id).await? else {
-        return Err(AppError::PermissionDenied);
+        return Err(AppError::Unauthorized);
     };
     if pwd != old_password {
         return Err(anyhow!("旧密码错误").into());
@@ -359,9 +344,6 @@ async fn put_pwd(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_whoami(req: &mut salvo::Request) -> RouterResult {
-    let user_id = crate::utils::auth::parse_token(req)?;
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
+    let user = utils::auth::parse_token(req).await?;
     Ok(user.into())
 }

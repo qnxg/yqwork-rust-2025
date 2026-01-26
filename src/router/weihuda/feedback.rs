@@ -23,7 +23,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_feedback_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", PERMISSION_PREFIX))
     {
@@ -61,7 +61,7 @@ async fn get_feedback_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_feedback(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", PERMISSION_PREFIX))
     {
@@ -79,8 +79,8 @@ async fn get_feedback(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_feedback(req: &mut salvo::Request) -> RouterResult {
-    let uid = utils::auth::parse_token(req)?;
-    if !service::qnxg::user::get_user_permission(uid)
+    let user = utils::auth::parse_token(req).await?;
+    if !service::qnxg::user::get_user_permission(user.id)
         .await?
         .has(&format!("{}:edit", PERMISSION_PREFIX))
     {
@@ -106,9 +106,6 @@ async fn put_feedback(req: &mut salvo::Request) -> RouterResult {
     if feedback.is_none() {
         return Err(anyhow!("反馈不存在").into());
     }
-    let Some(user) = service::qnxg::user::get_user(uid).await? else {
-        return Err(AppError::Unauthorized);
-    };
     service::weihuda::feedback::update_feedback(
         id,
         FeedbackStatus::from(status),
@@ -121,7 +118,7 @@ async fn put_feedback(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_feedback(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", PERMISSION_PREFIX))
     {

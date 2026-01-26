@@ -1,4 +1,5 @@
 use crate::service::qnxg::permission::PermissionItem;
+use crate::utils;
 use crate::{result::RouterResult, service};
 use anyhow::anyhow;
 use salvo::{handler, macros::Extractible};
@@ -18,7 +19,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_permission_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", PERMISSION_PERMISSION_PREFIX))
     {
@@ -30,7 +31,7 @@ async fn get_permission_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_permission(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:add", PERMISSION_PERMISSION_PREFIX))
     {
@@ -58,7 +59,7 @@ async fn post_permission(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_permission(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", PERMISSION_PERMISSION_PREFIX))
     {
@@ -87,7 +88,7 @@ async fn put_permission(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_permission(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", PERMISSION_PERMISSION_PREFIX))
     {

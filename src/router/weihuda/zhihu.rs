@@ -24,7 +24,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_zhihu_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", ZHIHU_PERMISSION_PREFIX))
     {
@@ -69,7 +69,7 @@ async fn get_zhihu_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_zhihu(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", ZHIHU_PERMISSION_PREFIX))
     {
@@ -87,8 +87,8 @@ async fn get_zhihu(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_zhihu(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
-    if !service::qnxg::user::get_user_permission(user_id)
+    let user = utils::auth::parse_token(req).await?;
+    if !service::qnxg::user::get_user_permission(user.id)
         .await?
         .has(&format!("{}:add", ZHIHU_PERMISSION_PREFIX))
     {
@@ -108,9 +108,6 @@ async fn post_zhihu(req: &mut salvo::Request) -> RouterResult {
     let param: PostZhihuReq = req.extract().await?;
     let status = ZhihuStatus::from(param.status);
     let typ = ZhihuType::from(param.typ.as_str());
-    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     let info = ZhihuBasicInfo {
         title: param.title,
         typ,
@@ -127,7 +124,7 @@ async fn post_zhihu(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_zhihu(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
+    let user_id = utils::auth::parse_token(req).await?.id;
     if !service::qnxg::user::get_user_permission(user_id)
         .await?
         .has(&format!("{}:edit", ZHIHU_PERMISSION_PREFIX))
@@ -166,7 +163,7 @@ async fn put_zhihu(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_zhihu(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
+    let user_id = utils::auth::parse_token(req).await?.id;
     if !service::qnxg::user::get_user_permission(user_id)
         .await?
         .has(&format!("{}:delete", ZHIHU_PERMISSION_PREFIX))

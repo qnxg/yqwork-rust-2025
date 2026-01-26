@@ -43,7 +43,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_work_hour_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -68,7 +68,7 @@ async fn get_work_hour_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_work_hour(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -86,7 +86,7 @@ async fn get_work_hour(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_work_hour(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:add", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -115,7 +115,7 @@ async fn post_work_hour(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_work_hour(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -151,7 +151,7 @@ async fn put_work_hour(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn delete_work_hour(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -172,7 +172,7 @@ async fn delete_work_hour(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_work_hour_record_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:generateTable", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -204,11 +204,8 @@ async fn get_work_hour_record_list(req: &mut salvo::Request) -> RouterResult {
 #[handler]
 async fn put_work_hour_record(req: &mut salvo::Request) -> RouterResult {
     // 主要是进行打回和批准
-    let uid = utils::auth::parse_token(req)?;
-    let permission = service::qnxg::user::get_user_permission(uid).await?;
-    let Some(user) = service::qnxg::user::get_user(uid).await? else {
-        return Err(AppError::PermissionDenied);
-    };
+    let user = utils::auth::parse_token(req).await?;
+    let permission = service::qnxg::user::get_user_permission(user.id).await?;
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source = "body", rename_all = "camelCase"))]
     struct PutWorkHourRecordReq {
@@ -298,8 +295,8 @@ async fn put_work_hour_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_work_hour_record_department_list(req: &mut salvo::Request) -> RouterResult {
-    let uid = utils::auth::parse_token(req)?;
-    if !service::qnxg::user::get_user_permission(uid)
+    let user = utils::auth::parse_token(req).await?;
+    if !service::qnxg::user::get_user_permission(user.id)
         .await?
         .has(&format!("{}:checkDepartment", WORK_HOUR_PERMISSION_PREFIX))
     {
@@ -319,9 +316,6 @@ async fn get_work_hour_record_department_list(req: &mut salvo::Request) -> Route
     } = req.extract().await?;
     let page = page.unwrap_or(1);
     let page_size = page_size.unwrap_or(10);
-    let Some(user) = service::qnxg::user::get_user(uid).await? else {
-        return Err(AppError::PermissionDenied);
-    };
     let (count, rows) = service::qnxg::work_hour::get_work_hour_record_department_list(
         page,
         page_size,
@@ -338,7 +332,7 @@ async fn get_work_hour_record_department_list(req: &mut salvo::Request) -> Route
 
 #[handler]
 async fn get_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
+    let user_id = utils::auth::parse_token(req).await?.id;
     if !service::qnxg::user::get_user_permission(user_id)
         .await?
         .has(&format!("{}:query", WORK_HOUR_PERMISSION_PREFIX))
@@ -357,7 +351,7 @@ async fn get_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn put_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
-    let user_id = utils::auth::parse_token(req)?;
+    let user_id = utils::auth::parse_token(req).await?.id;
     if !service::qnxg::user::get_user_permission(user_id)
         .await?
         .has(&format!("{}:query", WORK_HOUR_PERMISSION_PREFIX))
@@ -390,7 +384,7 @@ async fn put_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn save_work_hour_table(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:generateTable", WORK_HOUR_PERMISSION_PREFIX))
     {

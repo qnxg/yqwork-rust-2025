@@ -23,7 +23,7 @@ pub fn routers() -> salvo::Router {
 
 #[handler]
 async fn get_announcement_list(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", ANNOUNCEMENT_PERMISSION_PREFIX))
     {
@@ -49,7 +49,7 @@ async fn get_announcement_list(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_announcement(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:query", ANNOUNCEMENT_PERMISSION_PREFIX))
     {
@@ -67,7 +67,7 @@ async fn get_announcement(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn post_announcement(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:add", ANNOUNCEMENT_PERMISSION_PREFIX))
     {
@@ -98,7 +98,7 @@ async fn post_announcement(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 pub async fn put_announcement(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:edit", ANNOUNCEMENT_PERMISSION_PREFIX))
     {
@@ -132,7 +132,7 @@ pub async fn put_announcement(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 pub async fn delete_announcement(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req)?)
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
         .has(&format!("{}:delete", ANNOUNCEMENT_PERMISSION_PREFIX))
     {

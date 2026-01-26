@@ -1,8 +1,9 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::config::CFG;
 use crate::result::{AppError, AppResult};
+use crate::service;
+use crate::service::qnxg::user::User;
 use anyhow::anyhow;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 struct Payload {
@@ -10,7 +11,7 @@ struct Payload {
     pub exp: usize,
 }
 
-pub fn parse_token(req: &mut salvo::Request) -> AppResult<u32> {
+pub async fn parse_token(req: &mut salvo::Request) -> AppResult<User> {
     let token = req
         .headers()
         .get("Authorization")
@@ -23,7 +24,11 @@ pub fn parse_token(req: &mut salvo::Request) -> AppResult<u32> {
         &jsonwebtoken::Validation::default(),
     )
     .map_err(|_| AppError::Unauthorized)?;
-    Ok(res.claims.id)
+    let user_id = res.claims.id;
+    let Some(user) = service::qnxg::user::get_user(user_id).await? else {
+        return Err(AppError::Unauthorized);
+    };
+    Ok(user)
 }
 
 pub fn generate_token(id: u32) -> AppResult<String> {
