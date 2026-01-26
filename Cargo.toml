@@ -1,0 +1,29 @@
+[package]
+name = "yqwork-rust-2025"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+salvo = { version = "0.80.0", features = ['cors', "logging"] }
+anyhow = "1.0.81"
+chrono = { version = "0.4.37", features = ["serde"] }
+clia-tracing-config = "0.2.7"
+jsonwebtoken = "9.3.0"
+serde = "1.0.197"
+serde_json = { version = "1.0.115" }
+sqlx = { version = "0.7.4", features = [
+    "mysql",
+    "runtime-tokio",
+    "chrono",
+    "json",
+] }
+thiserror = "1.0.58"
+tokio = { version = "1.37.0", features = [
+    "rt-multi-thread",
+    "macros",
+    "signal",
+] }
+toml = "0.8.12"
+tracing = "0.1.40"
+once_cell = "1.21.3"
+reqwest = { version = "0.13.1", features = ["json"] }

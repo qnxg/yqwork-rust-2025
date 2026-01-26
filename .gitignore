@@ -1,0 +1,6 @@
+/target
+/.vscode
+/config/config_development.toml
+/config/config_production.toml
+/config/config.toml
+/logs

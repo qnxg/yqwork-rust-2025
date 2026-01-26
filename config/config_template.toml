@@ -1,0 +1,20 @@
+[server]
+address = "0.0.0.0:8000"
+
+[database]
+max_connections = 100
+database_url = "mysql://username:password@ip:port"
+
+[weihuda]
+api_url = ""
+
+[jwt]
+secret = ""
+
+[log]
+filter_level = "debug"   # 可用的日志等级："debug", "info", "warn", "error"
+with_ansi = true         # 有ansi字符美化控制台输出
+to_stdout = true         # 输出到控制台，当打开时候不会写入到日志。在生产环境中应关闭
+directory = "./logs"     # 日志目录
+file_name = "yqwork.log" # 日志前缀
+rolling = "daily"        # 可用的日志滚动策略："minutely", "hourly", "daily", "never"
