@@ -109,8 +109,12 @@ async fn post_work_hour(req: &mut salvo::Request) -> RouterResult {
     let status = WorkHourStatus::from(status);
     let end_time = chrono::NaiveDateTime::parse_from_str(&end_time, "%Y-%m-%dT%H:%M")
         .map_err(|_| AppError::ParamParseError)?;
-    service::qnxg::work_hour::add_work_hour(&name, &end_time, status, comment.as_deref()).await?;
-    Ok(().into())
+    let res = service::qnxg::work_hour::add_work_hour(&name, &end_time, status, comment.as_deref())
+        .await?;
+    let new_work_hour = service::qnxg::work_hour::get_work_hour(res)
+        .await?
+        .ok_or(anyhow!("新增工时记录失败"))?;
+    Ok(new_work_hour.into())
 }
 
 #[handler]
@@ -146,7 +150,10 @@ async fn put_work_hour(req: &mut salvo::Request) -> RouterResult {
     }
     service::qnxg::work_hour::update_work_hour(id, &name, &end_time, status, comment.as_deref())
         .await?;
-    Ok(().into())
+    let new_work_hour = service::qnxg::work_hour::get_work_hour(id)
+        .await?
+        .ok_or(anyhow!("更新工时记录失败"))?;
+    Ok(new_work_hour.into())
 }
 
 #[handler]
@@ -290,7 +297,11 @@ async fn put_work_hour_record(req: &mut salvo::Request) -> RouterResult {
             return Err(AppError::ParamParseError);
         }
     }
-    Ok(().into())
+    let new_work_hour_record =
+        service::qnxg::work_hour::get_work_hour_record(work_hour_id, user_id)
+            .await?
+            .ok_or(anyhow!("更新工时记录失败"))?;
+    Ok(new_work_hour_record.into())
 }
 
 #[handler]
@@ -379,7 +390,11 @@ async fn put_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
         return Err(anyhow!("已提交的工时记录不能修改").into());
     }
     service::qnxg::work_hour::submit_work_hour_record(work_hour_id, user_id, &work_descs).await?;
-    Ok(().into())
+    let new_work_hour_record =
+        service::qnxg::work_hour::get_my_work_hour_record(work_hour_id, user_id)
+            .await?
+            .ok_or(anyhow!("更新工时记录失败"))?;
+    Ok(new_work_hour_record.into())
 }
 
 #[handler]

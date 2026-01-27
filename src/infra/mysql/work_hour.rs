@@ -4,6 +4,7 @@ use super::get_db_pool;
 use crate::result::AppResult;
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkHour {
     pub id: u32,
     pub name: String,
@@ -178,6 +179,7 @@ pub async fn delete_work_hour(work_hour_id: u32) -> AppResult<()> {
 }
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct WorkHourRecord {
     pub id: u32,
     pub work_hour_id: u32,

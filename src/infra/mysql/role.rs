@@ -2,6 +2,7 @@ use super::get_db_pool;
 use crate::result::AppResult;
 use crate::service::qnxg::permission::{Permission, PermissionItem};
 
+#[derive(serde::Serialize, Debug)]
 pub struct Role {
     pub id: u32,
     pub name: String,

@@ -4,5 +4,5 @@
 //     pub stu_id: String,
 //     // 问卷的具体内容
 //     pub record: serde_json::Value,
-//     pub steps: 
+//     pub steps:
 // }

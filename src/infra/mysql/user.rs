@@ -4,6 +4,7 @@ use super::get_db_pool;
 use crate::result::AppResult;
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: u32,
     pub last_login: Option<chrono::NaiveDateTime>,
@@ -11,6 +12,7 @@ pub struct User {
 }
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct UserBasicInfo {
     pub username: Option<String>,
     pub name: String,

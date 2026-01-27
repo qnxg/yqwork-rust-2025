@@ -4,6 +4,7 @@ use super::get_db_pool;
 use crate::result::AppResult;
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Feedback {
     pub id: u32,
     pub contact: Option<String>,

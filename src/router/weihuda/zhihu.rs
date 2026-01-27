@@ -118,8 +118,11 @@ async fn post_zhihu(req: &mut salvo::Request) -> RouterResult {
         publish_time: param.publish_time,
         stu_id: user.info.stu_id,
     };
-    service::weihuda::zhihu::add_zhihu(&info).await?;
-    Ok(().into())
+    let res = service::weihuda::zhihu::add_zhihu(&info).await?;
+    let new_zhihu = service::weihuda::zhihu::get_zhihu(res)
+        .await?
+        .ok_or(anyhow!("新增知湖文章失败"))?;
+    Ok(new_zhihu.into())
 }
 
 #[handler]
@@ -158,7 +161,10 @@ async fn put_zhihu(req: &mut salvo::Request) -> RouterResult {
         stu_id: zhihu.info.stu_id,
     };
     service::weihuda::zhihu::update_zhihu(param.id, &info).await?;
-    Ok(().into())
+    let new_zhihu = service::weihuda::zhihu::get_zhihu(param.id)
+        .await?
+        .ok_or(anyhow!("更新知湖文章失败"))?;
+    Ok(new_zhihu.into())
 }
 
 #[handler]

@@ -113,7 +113,10 @@ async fn put_feedback(req: &mut salvo::Request) -> RouterResult {
         &user,
     )
     .await?;
-    Ok(().into())
+    let new_feedback = service::weihuda::feedback::get_feedback(id)
+        .await?
+        .ok_or(anyhow!("更新问题反馈失败"))?;
+    Ok(new_feedback.into())
 }
 
 #[handler]

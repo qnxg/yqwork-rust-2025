@@ -10,6 +10,7 @@ pub struct Zhihu {
     pub info: ZhihuBasicInfo,
 }
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ZhihuBasicInfo {
     pub title: String,
     pub typ: ZhihuType,

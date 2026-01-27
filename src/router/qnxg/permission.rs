@@ -1,4 +1,3 @@
-use crate::service::qnxg::permission::PermissionItem;
 use crate::utils;
 use crate::{result::RouterResult, service};
 use anyhow::anyhow;
@@ -49,12 +48,12 @@ async fn post_permission(req: &mut salvo::Request) -> RouterResult {
         return Err(anyhow!("权限标识已存在").into());
     }
     let res = service::qnxg::permission::add_permission(&name, &permission).await?;
-    Ok(PermissionItem {
-        id: res,
-        name,
-        permission,
-    }
-    .into())
+    let new_permission = service::qnxg::permission::get_permission_list()
+        .await?
+        .into_iter()
+        .find(|p| p.id == res)
+        .ok_or(anyhow!("新增权限失败"))?;
+    Ok(new_permission.into())
 }
 
 #[handler]
@@ -83,7 +82,12 @@ async fn put_permission(req: &mut salvo::Request) -> RouterResult {
         return Err(anyhow!("权限不存在").into());
     }
     service::qnxg::permission::update_permission(id, &name, &permission).await?;
-    Ok(().into())
+    let new_permission = service::qnxg::permission::get_permission_list()
+        .await?
+        .into_iter()
+        .find(|p| p.id == id)
+        .ok_or(anyhow!("更新权限失败"))?;
+    Ok(new_permission.into())
 }
 
 #[handler]

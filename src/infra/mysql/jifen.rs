@@ -4,6 +4,7 @@ use super::get_db_pool;
 use crate::result::AppResult;
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct GoodsRecord {
     pub id: u32,
     pub stu_id: String,
@@ -277,6 +278,7 @@ pub async fn delete_goods(id: u32) -> AppResult<()> {
 }
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct JifenRecord {
     pub id: u32,
     pub key: String,
@@ -450,6 +452,7 @@ pub async fn update_jifen(stu_id: &str, delta: i32) -> AppResult<()> {
 }
 
 #[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct JifenRule {
     pub id: u32,
     pub key: String,

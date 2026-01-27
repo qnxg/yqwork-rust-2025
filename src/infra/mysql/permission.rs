@@ -4,7 +4,7 @@ use crate::result::AppResult;
 #[derive(serde::Serialize, Debug)]
 pub struct PermissionItem {
     pub id: u32,
-    // 权限/菜单名称
+    // 权限名称
     pub name: String,
     // 权限标识
     pub permission: String,

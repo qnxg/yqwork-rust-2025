@@ -1,5 +1,4 @@
 use crate::result::{AppError, RouterResult};
-use crate::service::weihuda::jifen::JifenRule;
 use crate::{service, utils};
 use anyhow::anyhow;
 use salvo::handler;
@@ -144,11 +143,7 @@ async fn get_goods_list(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     let goods = service::weihuda::jifen::get_goods_list().await?;
-    Ok(json!({
-        "count": goods.len(),
-        "rows": goods,
-    })
-    .into())
+    Ok(goods.into())
 }
 
 #[handler]
@@ -165,7 +160,7 @@ async fn post_goods(req: &mut salvo::Request) -> RouterResult {
         count: u32,
         cover: String,
         description: Option<String>,
-        enabled: u32,
+        enabled: bool,
         name: String,
         price: u32,
     }
@@ -183,10 +178,15 @@ async fn post_goods(req: &mut salvo::Request) -> RouterResult {
         count,
         price,
         description.as_deref(),
-        enabled != 0,
+        enabled,
     )
     .await?;
-    Ok(res.into())
+    let new_goods = service::weihuda::jifen::get_goods_list()
+        .await?
+        .into_iter()
+        .find(|g| g.id == res)
+        .ok_or(anyhow!("新增积分商品失败"))?;
+    Ok(new_goods.into())
 }
 
 #[handler]
@@ -235,8 +235,13 @@ async fn put_goods(req: &mut salvo::Request) -> RouterResult {
         enabled != 0,
     )
     .await?;
+    let new_goods = service::weihuda::jifen::get_goods_list()
+        .await?
+        .into_iter()
+        .find(|g| g.id == id)
+        .ok_or(anyhow!("更新积分商品失败"))?;
 
-    Ok(().into())
+    Ok(new_goods.into())
 }
 
 #[handler]
@@ -346,7 +351,9 @@ async fn post_record(req: &mut salvo::Request) -> RouterResult {
         jifen,
     } = req.extract().await?;
     let res = service::weihuda::jifen::add_record(&user, &stu_id, jifen, &desc).await?;
-    let record = service::weihuda::jifen::get_record(res).await?;
+    let record = service::weihuda::jifen::get_record(res)
+        .await?
+        .ok_or(anyhow!("新增积分记录失败"))?;
     Ok(record.into())
 }
 
@@ -400,7 +407,7 @@ async fn post_rule(req: &mut salvo::Request) -> RouterResult {
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PostRuleReq {
         cycle: u32,
-        enabled: u32,
+        enabled: bool,
         jifen: i32,
         key: String,
         max_count: u32,
@@ -414,18 +421,14 @@ async fn post_rule(req: &mut salvo::Request) -> RouterResult {
         max_count,
         name,
     } = req.extract().await?;
-    let res = service::weihuda::jifen::add_rule(&name, &key, jifen, cycle, max_count, enabled != 0)
-        .await?;
-    Ok(JifenRule {
-        id: res,
-        name,
-        key,
-        jifen,
-        cycle,
-        max_count,
-        enabled: enabled != 0,
-    }
-    .into())
+    let res =
+        service::weihuda::jifen::add_rule(&name, &key, jifen, cycle, max_count, enabled).await?;
+    let new_rule = service::weihuda::jifen::get_rule_list()
+        .await?
+        .into_iter()
+        .find(|r| r.id == res)
+        .ok_or(anyhow!("新增积分规则失败"))?;
+    Ok(new_rule.into())
 }
 
 #[handler]
@@ -459,7 +462,12 @@ async fn put_rule(req: &mut salvo::Request) -> RouterResult {
     } = req.extract().await?;
     service::weihuda::jifen::update_rule(id, &name, &key, jifen, cycle, max_count, enable != 0)
         .await?;
-    Ok(().into())
+    let new_rule = service::weihuda::jifen::get_rule_list()
+        .await?
+        .into_iter()
+        .find(|r| r.id == id)
+        .ok_or(anyhow!("更新积分规则失败"))?;
+    Ok(new_rule.into())
 }
 
 #[handler]

@@ -170,8 +170,11 @@ async fn post_user(req: &mut salvo::Request) -> RouterResult {
         status,
         department_id: param.department_id,
     };
-    service::qnxg::user::add_user(&info, &param.password, &param.role_id).await?;
-    Ok(().into())
+    let res = service::qnxg::user::add_user(&info, &param.password, &param.role_id).await?;
+    let new_user = service::qnxg::user::get_user(res)
+        .await?
+        .ok_or(anyhow!("新增用户失败"))?;
+    Ok(new_user.into())
 }
 
 #[handler]
@@ -233,7 +236,7 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     if !permission.is_admin() {
-        // 非管理员部门不能变更
+        // 非管理员部门不能变更部门信息
         if param.department_id != user.info.department_id {
             return Err(AppError::PermissionDenied);
         }
@@ -285,7 +288,10 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
     if let Some(role_id) = param.role_id {
         service::qnxg::role::update_user_roles(param.id, &role_id).await?;
     }
-    Ok(().into())
+    let new_user = service::qnxg::user::get_user(param.id)
+        .await?
+        .ok_or(anyhow!("更新用户失败"))?;
+    Ok(new_user.into())
 }
 
 #[handler]

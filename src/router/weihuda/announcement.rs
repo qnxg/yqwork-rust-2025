@@ -7,10 +7,10 @@ use serde_json::json;
 
 use crate::{result::RouterResult, service};
 
-const ANNOUNCEMENT_PERMISSION_PREFIX: &str = "hdwsh:miniMessage";
+const ANNOUNCEMENT_PERMISSION_PREFIX: &str = "hdwsh:announcement";
 
 pub fn routers() -> salvo::Router {
-    salvo::Router::with_path("mini-message")
+    salvo::Router::with_path("announcement")
         .get(get_announcement_list)
         .post(post_announcement)
         .push(

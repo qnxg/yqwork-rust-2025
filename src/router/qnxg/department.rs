@@ -1,6 +1,5 @@
 use anyhow::anyhow;
 use salvo::{handler, macros::Extractible};
-use serde_json::json;
 
 use crate::{
     result::{AppError, RouterResult},
@@ -26,11 +25,7 @@ pub fn routers() -> salvo::Router {
 #[handler]
 async fn get_department_list() -> RouterResult {
     let res = service::qnxg::department::get_department_list().await?;
-    Ok(json!({
-        "count": res.len(),
-        "rows": res,
-    })
-    .into())
+    Ok(res.into())
 }
 
 #[handler]
@@ -49,7 +44,11 @@ async fn post_department(req: &mut salvo::Request) -> RouterResult {
     }
     let PostDepartmentReq { name, desc } = req.extract().await?;
     let id = service::qnxg::department::add_department(name.as_str(), desc.as_str()).await?;
-    let new_department = service::qnxg::department::Department { id, name, desc };
+    let new_department = service::qnxg::department::get_department_list()
+        .await?
+        .into_iter()
+        .find(|d| d.id == id)
+        .ok_or(anyhow!("新增部门失败"))?;
     Ok(new_department.into())
 }
 
@@ -77,7 +76,12 @@ async fn put_department(req: &mut salvo::Request) -> RouterResult {
     }
     // 更新部门
     service::qnxg::department::update_department(id, name.as_str(), desc.as_str()).await?;
-    Ok(().into())
+    let new_department = service::qnxg::department::get_department_list()
+        .await?
+        .into_iter()
+        .find(|d| d.id == id)
+        .ok_or(anyhow!("更新部门失败"))?;
+    Ok(new_department.into())
 }
 
 #[handler]

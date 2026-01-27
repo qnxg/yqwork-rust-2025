@@ -71,8 +71,13 @@ async fn post_role(req: &mut salvo::Request) -> RouterResult {
     if !permission_ids.iter().all(|v| permission_list.contains(v)) {
         return Err(anyhow!("权限不存在").into());
     }
-    service::qnxg::role::add_role(&name, &permission_ids).await?;
-    Ok(().into())
+    let res = service::qnxg::role::add_role(&name, &permission_ids).await?;
+    let new_role = service::qnxg::role::get_role_list()
+        .await?
+        .into_iter()
+        .find(|r| r.id == res)
+        .ok_or(anyhow!("新增角色失败"))?;
+    Ok(new_role.into())
 }
 
 #[handler]
@@ -101,7 +106,12 @@ async fn put_role(req: &mut salvo::Request) -> RouterResult {
         return Err(anyhow!("角色不存在").into());
     }
     service::qnxg::role::update_role(id, &name, &permission_ids).await?;
-    Ok(().into())
+    let new_role = service::qnxg::role::get_role_list()
+        .await?
+        .into_iter()
+        .find(|r| r.id == id)
+        .ok_or(anyhow!("更新角色失败"))?;
+    Ok(new_role.into())
 }
 
 #[handler]
