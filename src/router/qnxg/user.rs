@@ -1,5 +1,6 @@
 use crate::result::{AppError, RouterResult};
-use crate::service::qnxg::user::{UserBasicInfo, UserStatus};
+use crate::service::qnxg::permission::PermissionItem;
+use crate::service::qnxg::user::{User, UserBasicInfo, UserStatus};
 use crate::{service, utils};
 use anyhow::anyhow;
 use salvo::handler;
@@ -350,6 +351,16 @@ async fn put_pwd(req: &mut salvo::Request) -> RouterResult {
 
 #[handler]
 async fn get_whoami(req: &mut salvo::Request) -> RouterResult {
+    #[derive(serde::Serialize, Debug)]
+    struct GetWhoamiResp {
+        user: User,
+        permissions: Vec<PermissionItem>,
+    }
     let user = utils::auth::parse_token(req).await?;
-    Ok(user.into())
+    let permissions = service::qnxg::user::get_user_permission(user.id).await?;
+    Ok(GetWhoamiResp {
+        user,
+        permissions: permissions.into_inner(),
+    }
+    .into())
 }
