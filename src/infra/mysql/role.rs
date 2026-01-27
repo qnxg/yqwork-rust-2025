@@ -1,3 +1,5 @@
+use sqlx::Row;
+
 use super::get_db_pool;
 use crate::result::AppResult;
 use crate::service::qnxg::permission::{Permission, PermissionItem};
@@ -85,29 +87,31 @@ pub async fn get_role_list() -> AppResult<Vec<Role>> {
 }
 
 pub async fn get_role_permission(role_id: &[u32]) -> AppResult<Permission> {
-    let res = sqlx::query!(
+    let placeholders = vec!["?"; role_id.len()].join(",");
+    let query_str = format!(
         r#"
-        SELECT DISTINCT p.id, p.name, p.permission
-        FROM yqwork.system_role_permission rp 
-        INNER JOIN yqwork.permissions p 
-        ON p.id = rp.permissionId 
-        WHERE p.deletedAt IS NULL AND rp.roleId IN (?)
-        "#,
-        role_id
-            .iter()
-            .map(|id| id.to_string())
-            .collect::<Vec<String>>()
-            .join(",")
-    )
-    .fetch_all(get_db_pool().await)
-    .await?
-    .into_iter()
-    .map(|r| PermissionItem {
-        id: r.id,
-        name: r.name,
-        permission: r.permission,
-    })
-    .collect::<Vec<_>>();
+            SELECT DISTINCT p.id, p.name, p.permission
+            FROM yqwork.system_role_permission rp 
+            INNER JOIN yqwork.permissions p 
+            ON p.id = rp.permissionId 
+            WHERE p.deletedAt IS NULL AND rp.roleId IN ({})
+            "#,
+        placeholders
+    );
+    let mut query = sqlx::query(&query_str);
+    for id in role_id.iter() {
+        query = query.bind(id);
+    }
+    let res = query
+        .fetch_all(get_db_pool().await)
+        .await?
+        .into_iter()
+        .map(|r| PermissionItem {
+            id: r.get("id"),
+            name: r.get("name"),
+            permission: r.get("permission"),
+        })
+        .collect::<Vec<_>>();
     Ok(Permission::new(res))
 }
 

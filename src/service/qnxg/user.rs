@@ -23,3 +23,17 @@ pub async fn add_user(info: &UserBasicInfo, password: &str, role_id: &[u32]) -> 
     service::qnxg::role::update_user_roles(user_id, role_id).await?;
     Ok(user_id)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const USER_ID: u32 = 0;
+
+    #[tokio::test]
+    async fn test_get_user_permission() {
+        let roles = get_user_roles(USER_ID).await.unwrap();
+        println!("{:#?}", roles);
+        let perm = get_user_permission(USER_ID).await.unwrap();
+        println!("{:#?}", perm.into_inner());
+    }
+}
