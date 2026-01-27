@@ -12,14 +12,14 @@ pub fn routers() -> salvo::Router {
     salvo::Router::with_path("user")
         .get(get_user_list)
         .post(post_user)
+        .push(salvo::Router::with_path("pwd").put(put_pwd))
+        .push(salvo::Router::with_path("whoami").get(get_whoami))
         .push(
             salvo::Router::with_path("{id}")
                 .get(get_user)
                 .put(put_user)
                 .delete(delete_user),
         )
-        .push(salvo::Router::with_path("pwd").put(put_pwd))
-        .push(salvo::Router::with_path("whoami").get(get_whoami))
 }
 
 #[handler]
