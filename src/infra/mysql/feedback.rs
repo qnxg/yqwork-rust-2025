@@ -104,7 +104,6 @@ pub async fn get_feedback_list(
         r#"
         SELECT id, contact, createTime, `desc`, imgUrl, stuId, `type` AS typ, updatedAt, `status`, `comment`, updateBy
         FROM weihuda.feedbacks
-        ORDER BY id DESC
     "#,
     );
     let mut count_query: sqlx::QueryBuilder<sqlx::MySql> = sqlx::QueryBuilder::new(
@@ -114,10 +113,6 @@ pub async fn get_feedback_list(
     "#,
     );
 
-    main_query.push(" LIMIT ");
-    main_query.push_bind(page_size);
-    main_query.push(" OFFSET ");
-    main_query.push_bind((page - 1) * page_size);
     if stu_id.is_some() || status.is_some() || from.is_some() || to.is_some() {
         main_query.push(" WHERE ");
         count_query.push(" WHERE ");
@@ -166,6 +161,13 @@ pub async fn get_feedback_list(
         main_query.push_bind(to.clone());
         count_query.push_bind(to);
     }
+
+    main_query.push(" ORDER BY id DESC");
+    main_query.push(" LIMIT ");
+    main_query.push_bind(page_size);
+    main_query.push(" OFFSET ");
+    main_query.push_bind((page - 1) * page_size);
+
     let res = main_query
         .build()
         .fetch_all(get_db_pool().await)
@@ -185,11 +187,11 @@ pub async fn get_feedback_list(
             updated_by: r.get("updateBy"),
         })
         .collect::<Vec<_>>();
-    let count = count_query
+    let count: i64 = count_query
         .build_query_scalar()
         .fetch_one(get_db_pool().await)
         .await?;
-    Ok((count, res))
+    Ok((count as u32, res))
 }
 
 pub async fn get_feedback(id: u32) -> AppResult<Option<Feedback>> {

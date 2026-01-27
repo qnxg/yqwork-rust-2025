@@ -102,7 +102,6 @@ pub async fn get_zhihu_list(
         r#"
         SELECT id, title, `type` AS typ, content, tags, cover, status, publishTime, stuId
         FROM weihuda.zhihus
-        ORDER BY id DESC
         WHERE deletedAt IS NULL
         "#,
     );
@@ -147,6 +146,7 @@ pub async fn get_zhihu_list(
             .push_bind(format!("%{}%", stu_id));
     }
 
+    main_query.push(" ORDER BY id DESC");
     main_query.push(" LIMIT ").push_bind(page_size);
     main_query
         .push(" OFFSET ")
@@ -175,12 +175,12 @@ pub async fn get_zhihu_list(
             },
         })
         .collect::<Vec<_>>();
-    let count = count_query
+    let count: i64 = count_query
         .build_query_scalar()
         .fetch_one(get_db_pool().await)
         .await?;
 
-    Ok((count, res))
+    Ok((count as u32, res))
 }
 
 pub async fn get_zhihu(id: u32) -> AppResult<Option<Zhihu>> {

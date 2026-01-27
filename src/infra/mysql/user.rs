@@ -75,7 +75,6 @@ pub async fn get_user_list(
         r#"
         SELECT id, username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, lastLogin, departmentId
         FROM yqwork.users
-        ORDER BY id DESC
         WHERE deletedAt IS NULL
         "#,
     );
@@ -114,6 +113,7 @@ pub async fn get_user_list(
         main_query.push(" AND status = ").push_bind(status);
         count_query.push(" AND status = ").push_bind(status);
     }
+    main_query.push(" ORDER BY id DESC");
     main_query.push(" LIMIT ").push_bind(page_size);
     main_query
         .push(" OFFSET ")
@@ -140,11 +140,11 @@ pub async fn get_user_list(
             last_login: r.get("lastLogin"),
         })
         .collect::<Vec<_>>();
-    let count = count_query
+    let count: i64 = count_query
         .build_query_scalar()
         .fetch_one(get_db_pool().await)
         .await?;
-    Ok((count, res))
+    Ok((count as u32, res))
 }
 
 pub async fn get_user(user_id: u32) -> AppResult<Option<User>> {

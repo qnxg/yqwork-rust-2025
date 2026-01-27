@@ -79,16 +79,16 @@ pub async fn get_work_hour_list(page: u32, page_size: u32) -> AppResult<(u32, Ve
     })
     .collect::<Vec<_>>();
 
-    let total = sqlx::query_scalar!(
+    let total: i64 = sqlx::query_scalar!(
         r#"
         SELECT COUNT(*) as count FROM yqwork.work_hours
         WHERE deletedAt IS NULL
         "#
     )
     .fetch_one(get_db_pool().await)
-    .await? as u32;
+    .await?;
 
-    Ok((total, res))
+    Ok((total as u32, res))
 }
 
 pub async fn get_work_hour(id: u32) -> AppResult<Option<WorkHour>> {
@@ -337,7 +337,7 @@ pub async fn get_work_hour_record_list(
         status: WorkHourRecordStatus::from(r.status),
     })
     .collect::<Vec<_>>();
-    let count = sqlx::query_scalar!(
+    let count: i64 = sqlx::query_scalar!(
         r#"
         SELECT COUNT(*) as count FROM yqwork.work_hours_records
         WHERE workHourId = ? AND deletedAt IS NULL
@@ -345,8 +345,8 @@ pub async fn get_work_hour_record_list(
         work_hour_id
     )
     .fetch_one(get_db_pool().await)
-    .await? as u32;
-    Ok((count, res))
+    .await?;
+    Ok((count as u32, res))
 }
 
 /// 只显示已经提交，等待部门负责人审核的记录
@@ -383,7 +383,7 @@ pub async fn get_work_hour_record_department_list(
         comment: r.comment,
         status: WorkHourRecordStatus::from(r.status),
     }).collect::<Vec<_>>();
-    let count = sqlx::query_scalar!(
+    let count: i64 = sqlx::query_scalar!(
         r#"
         SELECT COUNT(*) as count
         FROM yqwork.work_hours_records r
@@ -394,8 +394,8 @@ pub async fn get_work_hour_record_department_list(
         department_id
     )
     .fetch_one(get_db_pool().await)
-    .await? as u32;
-    Ok((count, res))
+    .await?;
+    Ok((count as u32, res))
 }
 
 pub async fn get_my_work_hour_record(

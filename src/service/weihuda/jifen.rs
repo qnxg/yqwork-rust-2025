@@ -24,3 +24,14 @@ pub async fn add_record(
     infra::mysql::jifen::update_jifen(stu_id, delta).await?;
     Ok(res)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_get_record_list() {
+        let list = get_record_list(1, 10, None, None, None).await.unwrap();
+        println!("{:#?}", list);
+    }
+}

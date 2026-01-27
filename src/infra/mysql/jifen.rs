@@ -66,7 +66,6 @@ pub async fn get_goods_record_list(
         r#"
         SELECT id, stuId, goodsId, exchangeTime, status, receiveTime, comment
         FROM weihuda.goods_records
-        ORDER BY id DESC
         WHERE deletedAt IS NULL
         "#,
     );
@@ -97,6 +96,7 @@ pub async fn get_goods_record_list(
         count_query.push(" AND status = ").push_bind(status);
     }
 
+    main_query.push(" ORDER BY id DESC");
     main_query.push(" LIMIT ");
     main_query.push_bind(page_size);
     main_query.push(" OFFSET ");
@@ -120,12 +120,12 @@ pub async fn get_goods_record_list(
         })
         .collect::<Vec<_>>();
 
-    let count = count_query
+    let count: i64 = count_query
         .build_query_scalar()
         .fetch_one(get_db_pool().await)
         .await?;
 
-    Ok((count, res))
+    Ok((count as u32, res))
 }
 
 pub async fn get_goods_record(id: u32) -> AppResult<Option<GoodsRecord>> {
@@ -299,7 +299,6 @@ pub async fn get_record_list(
         r#"
         SELECT id, `key`, `param`, stuId, `desc`, jifen
         FROM weihuda.jifen_records
-        ORDER BY id DESC
         WHERE deletedAt IS NULL
         "#,
     );
@@ -338,6 +337,7 @@ pub async fn get_record_list(
             .push_bind(format!("%{}%", stu_id));
     }
 
+    main_query.push(" ORDER BY id DESC");
     main_query.push(" LIMIT ").push_bind(page_size);
     main_query
         .push(" OFFSET ")
@@ -349,7 +349,7 @@ pub async fn get_record_list(
         .await?
         .into_iter()
         .map(|r| JifenRecord {
-            id: r.get("id"),
+            id: r.get::<i64, _>("id") as u32,
             key: r.get("key"),
             param: r.get("param"),
             stu_id: r.get("stuId"),
@@ -358,12 +358,12 @@ pub async fn get_record_list(
         })
         .collect::<Vec<_>>();
 
-    let count = count_query
+    let count: i64 = count_query
         .build_query_scalar()
         .fetch_one(get_db_pool().await)
         .await?;
 
-    Ok((count, res))
+    Ok((count as u32, res))
 }
 
 pub async fn get_record(id: u32) -> AppResult<Option<JifenRecord>> {

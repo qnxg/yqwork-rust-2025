@@ -27,7 +27,7 @@ pub async fn get_announcement_list(
     .fetch_all(get_db_pool().await)
     .await?;
 
-    let total = sqlx::query_scalar!(
+    let total: i64 = sqlx::query_scalar!(
         r#"
         SELECT COUNT(*) as count FROM weihuda.mini_message
         WHERE deleted_at IS NULL
