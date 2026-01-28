@@ -50,7 +50,7 @@ async fn get_work_hour_list(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "query", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "query"), rename_all = "camelCase"))]
     struct GetWorkHourListReq {
         page: Option<u32>,
         page_size: Option<u32>,
@@ -75,7 +75,7 @@ async fn get_work_hour(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "param"))]
+    #[salvo(extract(default_source(from = "param")))]
     struct GetWorkHourReq {
         id: u32,
     }
@@ -93,7 +93,7 @@ async fn post_work_hour(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "body", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PostWorkHourReq {
         name: String,
         end_time: String,
@@ -126,7 +126,7 @@ async fn put_work_hour(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "body", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutWorkHourReq {
         #[salvo(extract(source(from = "param")))]
         id: u32,
@@ -165,7 +165,7 @@ async fn delete_work_hour(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "param"))]
+    #[salvo(extract(default_source(from = "param")))]
     struct DeleteWorkHourReq {
         id: u32,
     }
@@ -186,7 +186,7 @@ async fn get_work_hour_record_list(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "query", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "query"), rename_all = "camelCase"))]
     struct GetWorkHourRecordListReq {
         page: Option<u32>,
         page_size: Option<u32>,
@@ -214,7 +214,7 @@ async fn put_work_hour_record(req: &mut salvo::Request) -> RouterResult {
     let user = utils::auth::parse_token(req).await?;
     let permission = service::qnxg::user::get_user_permission(user.id).await?;
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "body", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutWorkHourRecordReq {
         #[salvo(extract(source(from = "query")))]
         work_hour_id: u32,
@@ -314,7 +314,7 @@ async fn get_work_hour_record_department_list(req: &mut salvo::Request) -> Route
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "query", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "query"), rename_all = "camelCase"))]
     struct GetWorkHourRecordDepartmentListReq {
         page: Option<u32>,
         page_size: Option<u32>,
@@ -351,7 +351,7 @@ async fn get_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "query", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "query"), rename_all = "camelCase"))]
     struct GetMyWorkHourRecordReq {
         work_hour_id: u32,
     }
@@ -370,7 +370,7 @@ async fn put_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "body", rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutMyWorkHourRecordReq {
         #[salvo(extract(source(from = "query")))]
         work_hour_id: u32,
@@ -411,7 +411,7 @@ async fn save_work_hour_table(req: &mut salvo::Request) -> RouterResult {
         includes: Vec<WorkInclude>,
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "body"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct SaveWorkHourTableReq {
         data: Vec<WorkHourTableItem>,
     }

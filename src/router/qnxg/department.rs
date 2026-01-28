@@ -37,7 +37,7 @@ async fn post_department(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct PostDepartmentReq {
         name: String,
         desc: String,
@@ -61,7 +61,7 @@ async fn put_department(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct PutDepartmentReq {
         #[salvo(extract(source(from = "param")))]
         id: u32,
@@ -93,7 +93,7 @@ async fn delete_department(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source(from = "param"), rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "param")))]
     struct DeleteDepartmentReq {
         id: u32,
     }

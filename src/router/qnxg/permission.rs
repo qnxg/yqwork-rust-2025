@@ -37,7 +37,7 @@ async fn post_permission(req: &mut salvo::Request) -> RouterResult {
         return Err(crate::result::AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct PostPermissionReq {
         name: String,
         permission: String,
@@ -65,9 +65,9 @@ async fn put_permission(req: &mut salvo::Request) -> RouterResult {
         return Err(crate::result::AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct PutPermissionReq {
-        #[salvo(source(from = "param"))]
+        #[salvo(extract(source(from = "param")))]
         id: u32,
         name: String,
         permission: String,

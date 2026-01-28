@@ -137,7 +137,7 @@ async fn put_zhihu(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutZhihuReq {
-        #[salvo(source = "param")]
+        #[salvo(extract(source(from = "param")))]
         id: u32,
         title: String,
         content: String,

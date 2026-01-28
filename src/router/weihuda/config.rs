@@ -34,7 +34,7 @@ async fn put_mini_config(req: &mut salvo::Request) -> RouterResult {
         return Err(AppError::PermissionDenied);
     }
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source = "body"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct UpdateMiniConfigReq {
         key: String,
         value: String,

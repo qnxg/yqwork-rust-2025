@@ -185,7 +185,7 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutUserReq {
-        #[salvo(source(from = "param"))]
+        #[salvo(extract(source(from = "param")))]
         id: u32,
         username: Option<String>,
         // 普通用户不能更改

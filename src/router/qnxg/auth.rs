@@ -23,7 +23,7 @@ pub fn routers() -> salvo::Router {
 #[handler]
 async fn login(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(from = "body"))]
+    #[salvo(extract(default_source(from = "body")))]
     struct LoginReq {
         username: String,
         password: String,
@@ -51,7 +51,7 @@ async fn get_auth_qrcode() -> RouterResult {
 #[handler]
 async fn get_auth_qrcode_status(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(from = "param"))]
+    #[salvo(extract(default_source(from = "param")))]
     struct AuthQrCodeStatusReq {
         code: String,
     }
@@ -63,7 +63,7 @@ async fn get_auth_qrcode_status(req: &mut salvo::Request) -> RouterResult {
 #[handler]
 async fn get_auth_qrcode_token(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(from = "param"))]
+    #[salvo(extract(default_source(from = "param")))]
     struct AuthQrCodeTokenReq {
         code: String,
     }

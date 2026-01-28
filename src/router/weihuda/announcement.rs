@@ -107,7 +107,7 @@ pub async fn put_announcement(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutAnnouncementReq {
-        #[salvo(source(from = "param"))]
+        #[salvo(extract(source(from = "param")))]
         id: u32,
         title: String,
         content: String,

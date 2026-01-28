@@ -91,7 +91,7 @@ async fn put_role(req: &mut salvo::Request) -> RouterResult {
     #[derive(serde::Deserialize, Extractible, Debug)]
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PutRoleReq {
-        #[salvo(source(from = "param"))]
+        #[salvo(extract(source(from = "param")))]
         id: u32,
         name: String,
         permission_ids: Vec<u32>,
