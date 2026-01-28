@@ -1,6 +1,6 @@
 use crate::infra;
 pub use crate::infra::mysql::jifen::{
-    delete_goods_record, get_goods_record, get_goods_record_list,
+    GoodsRecordStatus, delete_goods_record, get_goods_record, get_goods_record_list,
 };
 
 pub use crate::infra::mysql::jifen::{add_goods, delete_goods, get_goods_list, update_goods};

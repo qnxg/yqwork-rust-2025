@@ -96,7 +96,7 @@ pub async fn get_feedback_list(
     page: u32,
     page_size: u32,
     stu_id: Option<String>,
-    status: Option<u32>,
+    status: Option<FeedbackStatus>,
     from: Option<String>,
     to: Option<String>,
 ) -> AppResult<(u32, Vec<Feedback>)> {
@@ -136,8 +136,8 @@ pub async fn get_feedback_list(
         }
         main_query.push("status = ");
         count_query.push("status = ");
-        main_query.push_bind(status);
-        count_query.push_bind(status);
+        main_query.push_bind(u32::from(status));
+        count_query.push_bind(u32::from(status));
         first_condition = false;
     }
     if let Some(from) = from {

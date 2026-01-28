@@ -47,6 +47,7 @@ async fn get_feedback_list(req: &mut salvo::Request) -> RouterResult {
         from,
         to,
     } = req.extract().await?;
+    let status = status.map(FeedbackStatus::from);
     let page = page.unwrap_or(1);
     let page_size = page_size.unwrap_or(10);
     let (count, rows) =

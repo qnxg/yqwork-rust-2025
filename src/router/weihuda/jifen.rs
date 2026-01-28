@@ -1,4 +1,5 @@
 use crate::result::{AppError, RouterResult};
+use crate::service::weihuda::jifen::GoodsRecordStatus;
 use crate::{service, utils};
 use anyhow::anyhow;
 use salvo::handler;
@@ -77,6 +78,7 @@ async fn get_goods_record_list(req: &mut salvo::Request) -> RouterResult {
         goods_id,
         status,
     } = req.extract().await?;
+    let status = status.map(GoodsRecordStatus::from);
     let page = page.unwrap_or(1);
     let page_size = page_size.unwrap_or(10);
     let (count, rows) = service::weihuda::jifen::get_goods_record_list(

@@ -60,7 +60,7 @@ pub async fn get_goods_record_list(
     page_size: u32,
     stu_id: Option<&str>,
     goods_id: Option<u32>,
-    status: Option<u32>,
+    status: Option<GoodsRecordStatus>,
 ) -> AppResult<(u32, Vec<GoodsRecord>)> {
     let mut main_query = sqlx::QueryBuilder::new(
         r#"
@@ -92,8 +92,12 @@ pub async fn get_goods_record_list(
     }
 
     if let Some(status) = status {
-        main_query.push(" AND status = ").push_bind(status);
-        count_query.push(" AND status = ").push_bind(status);
+        main_query
+            .push(" AND status = ")
+            .push_bind(u32::from(status));
+        count_query
+            .push(" AND status = ")
+            .push_bind(u32::from(status));
     }
 
     main_query.push(" ORDER BY id DESC");

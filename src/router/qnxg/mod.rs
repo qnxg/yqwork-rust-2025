@@ -2,6 +2,7 @@ mod auth;
 mod department;
 mod permission;
 mod role;
+mod statistics;
 mod user;
 mod work_hour;
 
@@ -13,4 +14,5 @@ pub fn routers() -> salvo::Router {
         .push(role::routers())
         .push(user::routers())
         .push(work_hour::routers())
+        .push(statistics::routers())
 }
