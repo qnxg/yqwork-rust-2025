@@ -103,6 +103,11 @@ async fn delete_department(req: &mut salvo::Request) -> RouterResult {
     if !departments.into_iter().any(|d| d.id == id) {
         return Err(anyhow!("部门不存在").into());
     }
+    // 如果部门下有用户，则不能删除
+    let (count, _) = service::qnxg::user::get_user_list(1, 10, None, None, Some(id), None).await?;
+    if count > 0 {
+        return Err(anyhow!("该部门下有用户，无法删除").into());
+    }
     // 删除部门
     service::qnxg::department::delete_department(id).await?;
     Ok(().into())
