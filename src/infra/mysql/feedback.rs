@@ -1,53 +1,19 @@
 use sqlx::Row;
 
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Feedback {
     pub id: u32,
     pub contact: Option<String>,
-    pub create_time: chrono::NaiveDateTime,
     pub desc: String,
     pub img_url: Option<String>,
-    // TODO 数据库中是可为 NULL 的字段，但应该不是这样
-    pub stu_id: String,
-    pub typ: FeedbackType,
+    pub stu_id: Option<String>,
+    pub created_at: chrono::NaiveDateTime,
     pub updated_at: chrono::NaiveDateTime,
-    // TODO 数据库中是可为 NULL 的字段，但应该不是这样
     pub status: FeedbackStatus,
-    pub comment: Option<String>,
-    pub updated_by: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FeedbackType {
-    Suggestion,
-    Bug,
-    Other,
-}
-impl serde::Serialize for FeedbackType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let s = match self {
-            FeedbackType::Suggestion => "suggestion",
-            FeedbackType::Bug => "bug",
-            FeedbackType::Other => "other",
-        };
-        serializer.serialize_str(s)
-    }
-}
-impl From<String> for FeedbackType {
-    fn from(value: String) -> Self {
-        match value.as_str() {
-            "suggestion" => FeedbackType::Suggestion,
-            "bug" => FeedbackType::Bug,
-            _ => FeedbackType::Other,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -102,14 +68,14 @@ pub async fn get_feedback_list(
 ) -> AppResult<(u32, Vec<Feedback>)> {
     let mut main_query: sqlx::QueryBuilder<sqlx::MySql> = sqlx::QueryBuilder::new(
         r#"
-        SELECT id, contact, createTime, `desc`, imgUrl, stuId, `type` AS typ, updatedAt, `status`, `comment`, updateBy
-        FROM weihuda.feedbacks
+        SELECT id, contact, createdAt, `desc`, imgUrl, stuId, updatedAt, status
+        FROM weihuda_new.feedbacks
     "#,
     );
     let mut count_query: sqlx::QueryBuilder<sqlx::MySql> = sqlx::QueryBuilder::new(
         r#"
         SELECT COUNT(*) AS count
-        FROM weihuda.feedbacks
+        FROM weihuda_new.feedbacks
     "#,
     );
 
@@ -145,8 +111,8 @@ pub async fn get_feedback_list(
             main_query.push(" AND ");
             count_query.push(" AND ");
         }
-        main_query.push("createTime >= ");
-        count_query.push("createTime >= ");
+        main_query.push("createdAt >= ");
+        count_query.push("createdAt >= ");
         main_query.push_bind(from.clone());
         count_query.push_bind(from);
         first_condition = false;
@@ -156,8 +122,8 @@ pub async fn get_feedback_list(
             main_query.push(" AND ");
             count_query.push(" AND ");
         }
-        main_query.push("createTime <= ");
-        count_query.push("createTime <= ");
+        main_query.push("createdAt <= ");
+        count_query.push("createdAt <= ");
         main_query.push_bind(to.clone());
         count_query.push_bind(to);
     }
@@ -174,17 +140,14 @@ pub async fn get_feedback_list(
         .await?
         .into_iter()
         .map(|r| Feedback {
-            id: r.get::<i32, _>("id") as u32,
+            id: r.get("id"),
             contact: r.get("contact"),
-            create_time: r.get("createTime"),
+            created_at: r.get("createdAt"),
             desc: r.get("desc"),
             img_url: r.get("imgUrl"),
-            stu_id: r.get::<Option<String>, _>("stuId").unwrap_or_default(),
-            typ: FeedbackType::from(r.get::<String, _>("typ")),
+            stu_id: r.get("stuId"),
             updated_at: r.get("updatedAt"),
-            status: FeedbackStatus::from(r.get::<Option<i8>, _>("status").unwrap_or(0) as u32),
-            comment: r.get("comment"),
-            updated_by: r.get("updateBy"),
+            status: FeedbackStatus::from(r.get::<u32, _>("status")),
         })
         .collect::<Vec<_>>();
     let count: i64 = count_query
@@ -197,48 +160,36 @@ pub async fn get_feedback_list(
 pub async fn get_feedback(id: u32) -> AppResult<Option<Feedback>> {
     let r = sqlx::query!(
         r#"
-        SELECT id, contact, createTime, `desc`, imgUrl, stuId, `type` AS typ, updatedAt, `status`, `comment`, updateBy
-        FROM weihuda.feedbacks
+        SELECT id, contact, createdAt, `desc`, imgUrl, stuId, updatedAt, status
+        FROM weihuda_new.feedbacks
         WHERE id = ?
         "#,
         id
     )
     .fetch_optional(get_db_pool().await)
     .await?
-    .map(|r|{
-        Feedback {
-            id: r.id as u32,
-            contact: r.contact,
-            create_time: r.createTime,
-            desc: r.desc,
-            img_url: r.imgUrl,
-            stu_id: r.stuId.unwrap_or_default(),
-            typ: FeedbackType::from(r.typ),
-            updated_at: r.updatedAt,
-            status: FeedbackStatus::from(r.status.unwrap_or(0) as u32),
-            comment: r.comment,
-            updated_by: r.updateBy,
-        }
+    .map(|r| Feedback {
+        id: r.id,
+        contact: r.contact,
+        created_at: r.createdAt,
+        desc: r.desc,
+        img_url: r.imgUrl,
+        stu_id: r.stuId,
+        updated_at: r.updatedAt,
+        status: FeedbackStatus::from(r.status),
     });
     Ok(r)
 }
 
-pub async fn update_feedback(
-    id: u32,
-    status: FeedbackStatus,
-    comment: &str,
-    updated_by: &str,
-) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+pub async fn update_feedback(id: u32, status: FeedbackStatus) -> AppResult<()> {
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.feedbacks
-        SET status = ?, comment = ?, updateBy = ?, updatedAt = ?
+        UPDATE weihuda_new.feedbacks
+        SET status = ?, updatedAt = ?
         WHERE id = ?
         "#,
-        status as u32,
-        comment,
-        updated_by,
+        u32::from(status),
         now,
         id
     )
@@ -247,13 +198,120 @@ pub async fn update_feedback(
     Ok(())
 }
 
-// weihuda.feedbacks 并没有设计伪删除
+// weihuda_new.feedbacks 并没有设计伪删除
 pub async fn delete_feedback(id: u32) -> AppResult<()> {
     sqlx::query!(
         r#"
-        DELETE FROM weihuda.feedbacks
+        DELETE FROM weihuda_new.feedbacks
         WHERE id = ?
         "#,
+        id
+    )
+    .execute(get_db_pool().await)
+    .await?;
+    Ok(())
+}
+
+#[derive(serde::Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedbackMsg {
+    pub id: u32,
+    pub typ: FeedbackMsgType,
+    pub msg: Option<String>,
+    pub stu_id: String,
+    pub feedback_id: u32,
+    pub created_at: chrono::NaiveDateTime,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FeedbackMsgType {
+    // 正常后台回复
+    Comment,
+}
+
+impl serde::Serialize for FeedbackMsgType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = String::from(*self);
+        serializer.serialize_str(&s)
+    }
+}
+impl From<FeedbackMsgType> for String {
+    fn from(value: FeedbackMsgType) -> Self {
+        let s = match value {
+            FeedbackMsgType::Comment => "comment",
+        };
+        s.to_string()
+    }
+}
+impl From<String> for FeedbackMsgType {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "comment" => FeedbackMsgType::Comment,
+            _ => FeedbackMsgType::Comment,
+        }
+    }
+}
+
+pub async fn get_feedback_msg_list(id: u32) -> AppResult<Vec<FeedbackMsg>> {
+    let res = sqlx::query!(
+        r#"
+        SELECT id, typ, msg, stuId, feedbackId, createdAt
+        FROM weihuda_new.feedback_msg
+        WHERE feedbackId = ? AND deletedAt IS NULL
+        ORDER BY id DESC
+        "#,
+        id
+    )
+    .fetch_all(get_db_pool().await)
+    .await?
+    .into_iter()
+    .map(|r| FeedbackMsg {
+        id: r.id,
+        typ: FeedbackMsgType::from(r.typ),
+        msg: r.msg,
+        stu_id: r.stuId,
+        feedback_id: r.feedbackId,
+        created_at: r.createdAt,
+    })
+    .collect::<Vec<_>>();
+    Ok(res)
+}
+
+pub async fn add_feedback_msg(
+    typ: FeedbackMsgType,
+    msg: Option<&str>,
+    stu_id: &str,
+    feedback_id: u32,
+) -> AppResult<u32> {
+    let now = utils::now_time();
+    let res = sqlx::query!(
+        r#"
+        INSERT INTO weihuda_new.feedback_msg (typ, msg, stuId, feedbackId, createdAt)
+        VALUES (?, ?, ?, ?, ?)
+        "#,
+        String::from(typ),
+        msg,
+        stu_id,
+        feedback_id,
+        now
+    )
+    .execute(get_db_pool().await)
+    .await?;
+    Ok(res.last_insert_id() as u32)
+}
+
+pub async fn delete_feedback_msg(id: u32) -> AppResult<()> {
+    let now = utils::now_time();
+    sqlx::query!(
+        r#"
+        UPDATE weihuda_new.feedback_msg
+        SET deletedAt = ?
+        WHERE id = ?
+        "#,
+        now,
         id
     )
     .execute(get_db_pool().await)

@@ -18,14 +18,15 @@ pub enum AuthQrCodeStatus {
     Used,
 }
 pub async fn get_auth_qrcode_status(code: &str) -> AppResult<AuthQrCodeStatus> {
-    let status: AuthQrCodeStatus =
-        get_weihuda_api(&format!("/auth-qrcode/status/{}", code)).await?;
+    let status =
+        get_weihuda_api::<Option<AuthQrCodeStatus>>(&format!("/auth-qrcode/status/{}", code))
+            .await?
+            .ok_or(anyhow!("获取二维码状态为空"))?;
     Ok(status)
 }
 
 pub async fn get_auth_qrcode_info(code: &str) -> AppResult<String> {
-    let status: serde_json::Value =
-        get_weihuda_api(&format!("/auth-qrcode/status/{}", code)).await?;
+    let status: serde_json::Value = get_weihuda_api(&format!("/auth-qrcode/info/{}", code)).await?;
     let stu_id = status
         .get("info")
         .and_then(|info| info.get("stu_id"))

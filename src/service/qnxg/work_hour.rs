@@ -6,10 +6,10 @@ pub use crate::infra::mysql::work_hour::{
     WorkDesc, WorkHourRecordStatus, WorkHourStatus, add_work_hour, delete_work_hour, get_work_hour,
     get_work_hour_list, update_work_hour,
 };
+use crate::service;
 use crate::service::qnxg::department::Department;
 use crate::service::qnxg::user::User;
 use crate::{infra, result::AppResult};
-use crate::service;
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]

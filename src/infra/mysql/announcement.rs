@@ -1,7 +1,5 @@
-use chrono::{DateTime, Utc};
-
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -10,7 +8,7 @@ pub struct Announcement {
     pub title: String,
     pub content: String,
     pub url: Option<String>,
-    pub deleted_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<chrono::NaiveDateTime>,
 }
 
 /// 已经删除的公告也会获取
@@ -21,9 +19,9 @@ pub async fn get_announcement_list(
     let res = sqlx::query_as!(
         Announcement,
         r#"
-        SELECT id, title, content, url, deleted_at FROM weihuda.mini_message
+        SELECT id, title, content, url, deletedAt as deleted_at FROM weihuda_new.announcement
         ORDER BY 
-            CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END, 
+            CASE WHEN deletedAt IS NULL THEN 0 ELSE 1 END, 
             id DESC
         LIMIT ? OFFSET ?
         "#,
@@ -35,7 +33,7 @@ pub async fn get_announcement_list(
 
     let total: i64 = sqlx::query_scalar!(
         r#"
-        SELECT COUNT(*) as count FROM weihuda.mini_message
+        SELECT COUNT(*) as count FROM weihuda_new.announcement
         "#
     )
     .fetch_one(get_db_pool().await)
@@ -48,8 +46,8 @@ pub async fn get_announcement(id: u32) -> AppResult<Option<Announcement>> {
     let res = sqlx::query_as!(
         Announcement,
         r#"
-        SELECT id, title, content, url, deleted_at FROM weihuda.mini_message
-        WHERE id = ? AND deleted_at IS NULL
+        SELECT id, title, content, url, deletedAt as deleted_at FROM weihuda_new.announcement
+        WHERE id = ? AND deletedAt IS NULL
         "#,
         id,
     )
@@ -59,10 +57,10 @@ pub async fn get_announcement(id: u32) -> AppResult<Option<Announcement>> {
 }
 
 pub async fn add_announcement(title: &str, content: &str, url: Option<&str>) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
-        INSERT INTO weihuda.mini_message (title, content, url, created_at, updated_at)
+        INSERT INTO weihuda_new.announcement (title, content, url, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?)
         "#,
         title,
@@ -82,12 +80,12 @@ pub async fn update_announcement(
     content: &str,
     url: Option<&str>,
 ) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.mini_message
-        SET title = ?, content = ?, url = ?, updated_at = ?
-        WHERE id = ? AND deleted_at IS NULL
+        UPDATE weihuda_new.announcement
+        SET title = ?, content = ?, url = ?, updatedAt = ?
+        WHERE id = ? AND deletedAt IS NULL
         "#,
         title,
         content,
@@ -101,12 +99,12 @@ pub async fn update_announcement(
 }
 
 pub async fn delete_announcement(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.mini_message
-        SET deleted_at = ?
-        WHERE id = ? AND deleted_at IS NULL
+        UPDATE weihuda_new.announcement
+        SET deletedAt = ?
+        WHERE id = ? AND deletedAt IS NULL
         "#,
         now,
         id,

@@ -1,11 +1,10 @@
 use sqlx::Row;
 
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(Debug, serde::Serialize)]
 pub struct Zhihu {
-    // TODO 数据库中的是 i64
     pub id: u32,
     pub info: ZhihuBasicInfo,
 }
@@ -15,14 +14,12 @@ pub struct ZhihuBasicInfo {
     pub title: String,
     pub typ: ZhihuType,
     pub content: String,
-    // TODO 应该要为 NOT NULL
     pub tags: String,
     pub cover: Option<String>,
     pub status: ZhihuStatus,
-    // TODO 应该要为 NOT NULL
-    pub publish_time: chrono::NaiveDateTime,
-    // TODO 应该要为 NOT NULL
     pub stu_id: String,
+    pub top: bool,
+    pub created_at: chrono::NaiveDateTime,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZhihuType {
@@ -100,15 +97,15 @@ pub async fn get_zhihu_list(
 ) -> AppResult<(u32, Vec<Zhihu>)> {
     let mut main_query = sqlx::QueryBuilder::new(
         r#"
-        SELECT id, title, `type` AS typ, content, tags, cover, status, publishTime, stuId
-        FROM weihuda.zhihus
+        SELECT id, title, content, tags, cover, status, stuId, createdAt, top, typ
+        FROM weihuda_new.zhihus
         WHERE deletedAt IS NULL
         "#,
     );
     let mut count_query = sqlx::QueryBuilder::new(
         r#"
         SELECT COUNT(*) AS count
-        FROM weihuda.zhihus
+        FROM weihuda_new.zhihus
         WHERE deletedAt IS NULL
         "#,
     );
@@ -146,7 +143,7 @@ pub async fn get_zhihu_list(
             .push_bind(format!("%{}%", stu_id));
     }
 
-    main_query.push(" ORDER BY id DESC");
+    main_query.push(" ORDER BY top DESC, createdAt DESC");
     main_query.push(" LIMIT ").push_bind(page_size);
     main_query
         .push(" OFFSET ")
@@ -158,20 +155,17 @@ pub async fn get_zhihu_list(
         .await?
         .into_iter()
         .map(|r| Zhihu {
-            id: r.get::<i32, _>("id") as u32,
+            id: r.get("id"),
             info: ZhihuBasicInfo {
                 title: r.get("title"),
                 typ: ZhihuType::from(r.get::<String, _>("typ").as_str()),
                 content: r.get("content"),
-                tags: r.get::<Option<String>, _>("tags").unwrap_or_default(),
+                tags: r.get("tags"),
                 cover: r.get("cover"),
-                status: ZhihuStatus::from(
-                    r.get::<Option<i32>, _>("status").unwrap_or_default() as u32
-                ),
-                publish_time: r
-                    .get::<Option<chrono::NaiveDateTime>, _>("publishTime")
-                    .unwrap(),
-                stu_id: r.get::<Option<String>, _>("stuId").unwrap(),
+                status: ZhihuStatus::from(r.get::<Option<u32>, _>("status").unwrap_or_default()),
+                created_at: r.get("createdAt"),
+                stu_id: r.get("stuId"),
+                top: r.get::<u32, _>("top") != 0,
             },
         })
         .collect::<Vec<_>>();
@@ -186,49 +180,47 @@ pub async fn get_zhihu_list(
 pub async fn get_zhihu(id: u32) -> AppResult<Option<Zhihu>> {
     let res = sqlx::query!(
         r#"
-        SELECT id, title, `type` AS typ, content, tags, cover, status, publishTime, stuId
-        FROM weihuda.zhihus
+        SELECT id, title, content, tags, cover, status, stuId, createdAt, top, typ
+        FROM weihuda_new.zhihus
         WHERE id = ? AND deletedAt IS NULL
         "#,
         id
     )
     .fetch_optional(get_db_pool().await)
-    .await?;
+    .await?
+    .map(|r| Zhihu {
+        id: r.id,
+        info: ZhihuBasicInfo {
+            title: r.title,
+            typ: ZhihuType::from(r.typ.as_str()),
+            content: r.content,
+            tags: r.tags,
+            cover: r.cover,
+            status: ZhihuStatus::from(r.status),
+            stu_id: r.stuId,
+            top: r.top != 0,
+            created_at: r.createdAt,
+        },
+    });
 
-    if let Some(r) = res {
-        Ok(Some(Zhihu {
-            id: r.id as u32,
-            info: ZhihuBasicInfo {
-                title: r.title,
-                typ: ZhihuType::from(r.typ.as_str()),
-                content: r.content,
-                tags: r.tags.unwrap(),
-                cover: r.cover,
-                status: ZhihuStatus::from(r.status.unwrap_or_default() as u32),
-                publish_time: r.publishTime.unwrap(),
-                stu_id: r.stuId.unwrap(),
-            },
-        }))
-    } else {
-        Ok(None)
-    }
+    Ok(res)
 }
 
 pub async fn add_zhihu(info: &ZhihuBasicInfo) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
-        INSERT INTO weihuda.zhihus (title, `type`, content, tags, cover, status, publishTime, stuId, createdAt, updatedAt)
+        INSERT INTO weihuda_new.zhihus (title, content, tags, cover, status, stuId, top, typ, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
         info.title,
-        <&str>::from(info.typ),
         info.content,
         info.tags,
         info.cover,
-        u32::from(info.status) as i32,
-        info.publish_time,
+        u32::from(info.status),
         info.stu_id,
+        info.top as u32,
+        <&str>::from(info.typ),
         now,
         now
     )
@@ -239,21 +231,21 @@ pub async fn add_zhihu(info: &ZhihuBasicInfo) -> AppResult<u32> {
 }
 
 pub async fn update_zhihu(id: u32, info: &ZhihuBasicInfo) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.zhihus
-        SET title = ?, `type` = ?, content = ?, tags = ?, cover = ?, status = ?, publishTime = ?, stuId = ?, updatedAt = ?
+        UPDATE weihuda_new.zhihus
+        SET title = ?, content = ?, tags = ?, cover = ?, status = ?, stuId = ?, top = ?, typ = ?, updatedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
         info.title,
-        <&str>::from(info.typ),
         info.content,
         info.tags,
         info.cover,
-        u32::from(info.status) as i32,
-        info.publish_time,
+        u32::from(info.status),
         info.stu_id,
+        info.top as u32,
+        <&str>::from(info.typ),
         now,
         id
     )
@@ -264,10 +256,10 @@ pub async fn update_zhihu(id: u32, info: &ZhihuBasicInfo) -> AppResult<()> {
 }
 
 pub async fn delete_zhihu(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.zhihus
+        UPDATE weihuda_new.zhihus
         SET deletedAt = ?
         WHERE id = ?
         "#,

@@ -14,13 +14,7 @@ pub fn routers() -> salvo::Router {
 }
 
 #[handler]
-async fn get_mini_config(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
-        .await?
-        .has(&format!("{}:query", MINI_CONFIG_PERMISSION_PREFIX))
-    {
-        return Err(AppError::PermissionDenied);
-    }
+async fn get_mini_config(_req: &mut salvo::Request) -> RouterResult {
     let res = service::weihuda::config::get_mini_config().await?;
     Ok(res.into())
 }

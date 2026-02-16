@@ -11,7 +11,7 @@ pub async fn get_mini_config() -> AppResult<Vec<MiniConfig>> {
     let res = sqlx::query_as!(
         MiniConfig,
         r#"
-        SELECT `key`, `value` FROM weihuda.mini_configs
+        SELECT `key`, `value` FROM weihuda_new.mini_configs
         "#
     )
     .fetch_all(get_db_pool().await)
@@ -20,13 +20,11 @@ pub async fn get_mini_config() -> AppResult<Vec<MiniConfig>> {
 }
 
 pub async fn update_mini_config(key: &str, value: &str) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE weihuda.mini_configs SET `value` = ?, updatedAt = ? WHERE `key` = ? 
+        UPDATE weihuda_new.mini_configs SET `value` = ? WHERE `key` = ? 
         "#,
         value,
-        now,
         key,
     )
     .execute(get_db_pool().await)

@@ -22,7 +22,7 @@ async fn get_client() -> &'static reqwest::Client {
 struct WeihudaResponse<T> {
     pub code: u32,
     #[expect(unused)]
-    pub message: String,
+    pub msg: String,
     pub data: T,
 }
 

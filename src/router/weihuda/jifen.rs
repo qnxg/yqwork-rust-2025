@@ -19,7 +19,8 @@ pub fn routers() -> salvo::Router {
                 .push(
                     salvo::Router::with_path("{id}")
                         .get(get_goods_record)
-                        .delete(delete_goods_record),
+                        .delete(delete_goods_record)
+                        .push(salvo::Router::with_path("receive").get(get_goods_receive)),
                 ),
         )
         .push(
@@ -36,11 +37,7 @@ pub fn routers() -> salvo::Router {
             salvo::Router::with_path("jifen-record")
                 .get(get_record_list)
                 .post(post_record)
-                .push(
-                    salvo::Router::with_path("{id}")
-                        .get(get_record)
-                        .delete(delete_record),
-                ),
+                .push(salvo::Router::with_path("{id}").get(get_record)),
         )
         .push(
             salvo::Router::with_path("jifen-rule")
@@ -115,6 +112,31 @@ async fn get_goods_record(req: &mut salvo::Request) -> RouterResult {
 }
 
 #[handler]
+async fn get_goods_receive(req: &mut salvo::Request) -> RouterResult {
+    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
+        .await?
+        .has(&format!("{}:edit", GOODS_RECORD_PERMISSION_PREFIX))
+    {
+        return Err(AppError::PermissionDenied);
+    }
+    #[derive(serde::Deserialize, Extractible, Debug)]
+    #[salvo(extract(default_source(from = "param")))]
+    struct GetGoodsReceiveReq {
+        id: u32,
+    }
+    let GetGoodsReceiveReq { id } = req.extract().await?;
+    let record = service::weihuda::jifen::get_goods_record(id).await?;
+    if record.is_none() {
+        return Err(anyhow!("兑换记录不存在").into());
+    }
+    if record.unwrap().status == GoodsRecordStatus::Received {
+        return Err(anyhow!("兑换记录已领取").into());
+    }
+    service::weihuda::jifen::receive_goods(id).await?;
+    Ok(().into())
+}
+
+#[handler]
 async fn delete_goods_record(req: &mut salvo::Request) -> RouterResult {
     if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
@@ -164,7 +186,7 @@ async fn post_goods(req: &mut salvo::Request) -> RouterResult {
         description: Option<String>,
         enabled: bool,
         name: String,
-        price: u32,
+        price: i32,
     }
     let PostGoodsReq {
         count,
@@ -208,9 +230,9 @@ async fn put_goods(req: &mut salvo::Request) -> RouterResult {
         count: u32,
         cover: String,
         description: Option<String>,
-        enabled: u32,
+        enabled: bool,
         name: String,
-        price: u32,
+        price: i32,
     }
     let PutGoodsReq {
         id,
@@ -234,7 +256,7 @@ async fn put_goods(req: &mut salvo::Request) -> RouterResult {
         count,
         price,
         description.as_deref(),
-        enabled != 0,
+        enabled,
     )
     .await?;
     let new_goods = service::weihuda::jifen::get_goods_list()
@@ -360,28 +382,6 @@ async fn post_record(req: &mut salvo::Request) -> RouterResult {
 }
 
 #[handler]
-async fn delete_record(req: &mut salvo::Request) -> RouterResult {
-    if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
-        .await?
-        .has(&format!("{}:delete", JIFEN_RECORD_PERMISSION_PREFIX))
-    {
-        return Err(AppError::PermissionDenied);
-    }
-    #[derive(serde::Deserialize, Extractible, Debug)]
-    #[salvo(extract(default_source(from = "param")))]
-    struct DeleteRecordReq {
-        id: u32,
-    }
-    let DeleteRecordReq { id } = req.extract().await?;
-    let record = service::weihuda::jifen::get_record(id).await?;
-    if record.is_none() {
-        return Err(anyhow!("积分记录不存在").into());
-    }
-    service::weihuda::jifen::delete_record(id).await?;
-    Ok(().into())
-}
-
-#[handler]
 async fn get_rule_list(req: &mut salvo::Request) -> RouterResult {
     if !service::qnxg::user::get_user_permission(utils::auth::parse_token(req).await?.id)
         .await?
@@ -409,7 +409,7 @@ async fn post_rule(req: &mut salvo::Request) -> RouterResult {
     #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
     struct PostRuleReq {
         cycle: u32,
-        enabled: bool,
+        is_show: bool,
         jifen: i32,
         key: String,
         max_count: u32,
@@ -417,14 +417,18 @@ async fn post_rule(req: &mut salvo::Request) -> RouterResult {
     }
     let PostRuleReq {
         cycle,
-        enabled,
+        is_show,
         jifen,
         key,
         max_count,
         name,
     } = req.extract().await?;
+    let list = service::weihuda::jifen::get_rule_list().await?;
+    if list.iter().any(|r| r.key == key) {
+        return Err(anyhow!("积分规则已存在").into());
+    }
     let res =
-        service::weihuda::jifen::add_rule(&name, &key, jifen, cycle, max_count, enabled).await?;
+        service::weihuda::jifen::add_rule(&name, &key, jifen, cycle, max_count, is_show).await?;
     let new_rule = service::weihuda::jifen::get_rule_list()
         .await?
         .into_iter()
@@ -447,7 +451,7 @@ async fn put_rule(req: &mut salvo::Request) -> RouterResult {
         #[salvo(extract(source(from = "param")))]
         id: u32,
         cycle: u32,
-        enable: u32,
+        is_show: bool,
         jifen: i32,
         key: String,
         max_count: u32,
@@ -456,14 +460,17 @@ async fn put_rule(req: &mut salvo::Request) -> RouterResult {
     let PutRuleReq {
         id,
         cycle,
-        enable,
+        is_show,
         jifen,
         key,
         max_count,
         name,
     } = req.extract().await?;
-    service::weihuda::jifen::update_rule(id, &name, &key, jifen, cycle, max_count, enable != 0)
-        .await?;
+    let list = service::weihuda::jifen::get_rule_list().await?;
+    if !list.iter().any(|r| r.id == id) {
+        return Err(anyhow!("积分规则不存在").into());
+    }
+    service::weihuda::jifen::update_rule(id, &name, &key, jifen, cycle, max_count, is_show).await?;
     let new_rule = service::weihuda::jifen::get_rule_list()
         .await?
         .into_iter()

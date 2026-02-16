@@ -17,6 +17,8 @@ pub enum AppError {
     DatabaseError(#[from] sqlx::Error),
     #[error("请求超时")]
     TimeoutError,
+    #[error("内部请求错误：{0}")]
+    ReqwestError(#[from] reqwest::Error),
 }
 
 pub struct Success(serde_json::Value);
@@ -43,14 +45,15 @@ impl salvo::Scribe for AppError {
     fn render(self, res: &mut salvo::Response) {
         tracing::error!("{:#?}", self);
         match self {
-            AppError::Anyhow(_) | AppError::DatabaseError(_) => res.stuff(
-                StatusCode::OK,
-                Json(serde_json::json!({
-                    "code": 500,
-                    "data": null,
-                    "msg": format!("{}", self)
-                })),
-            ),
+            AppError::Anyhow(_) | AppError::DatabaseError(_) | AppError::ReqwestError(_) => res
+                .stuff(
+                    StatusCode::OK,
+                    Json(serde_json::json!({
+                        "code": 500,
+                        "data": null,
+                        "msg": format!("{}", self)
+                    })),
+                ),
             AppError::SalvoParseError(_) | AppError::ParamParseError => res.stuff(
                 StatusCode::OK,
                 Json(serde_json::json!({

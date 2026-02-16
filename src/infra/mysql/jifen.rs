@@ -1,20 +1,17 @@
 use sqlx::Row;
 
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GoodsRecord {
     pub id: u32,
     pub stu_id: String,
-    // TODO 数据库中是可为 NULL 的字段，但应该不是这样
     pub goods_id: u32,
-    pub exchange_time: chrono::NaiveDateTime,
-    // TODO 数据库中是可为 NULL 的字段，但应该不是这样
     pub status: GoodsRecordStatus,
     pub receive_time: Option<chrono::NaiveDateTime>,
-    pub comment: Option<String>,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,15 +61,15 @@ pub async fn get_goods_record_list(
 ) -> AppResult<(u32, Vec<GoodsRecord>)> {
     let mut main_query = sqlx::QueryBuilder::new(
         r#"
-        SELECT id, stuId, goodsId, exchangeTime, status, receiveTime, comment
-        FROM weihuda.goods_records
+        SELECT id, stuId, goodsId, status, receiveTime, createdAt
+        FROM weihuda_new.jifen_exchange
         WHERE deletedAt IS NULL
         "#,
     );
     let mut count_query = sqlx::QueryBuilder::new(
         r#"
         SELECT COUNT(*) AS count
-        FROM weihuda.goods_records
+        FROM weihuda_new.jifen_exchange
         WHERE deletedAt IS NULL
         "#,
     );
@@ -114,13 +111,10 @@ pub async fn get_goods_record_list(
         .map(|r| GoodsRecord {
             id: r.get("id"),
             stu_id: r.get("stuId"),
-            goods_id: r.get::<Option<u32>, _>("goodsId").unwrap_or_default(),
-            exchange_time: r.get("exchangeTime"),
-            status: GoodsRecordStatus::from(
-                r.get::<Option<i32>, _>("status").unwrap_or_default() as u32
-            ),
+            goods_id: r.get("goodsId"),
+            created_at: r.get("createdAt"),
+            status: GoodsRecordStatus::from(r.get::<u32, _>("status")),
             receive_time: r.get("receiveTime"),
-            comment: r.get("comment"),
         })
         .collect::<Vec<_>>();
 
@@ -135,8 +129,8 @@ pub async fn get_goods_record_list(
 pub async fn get_goods_record(id: u32) -> AppResult<Option<GoodsRecord>> {
     let res = sqlx::query!(
         r#"
-        SELECT id, stuId, goodsId, exchangeTime, status, receiveTime, comment
-        FROM weihuda.goods_records
+        SELECT id, stuId, goodsId, status, receiveTime, createdAt
+        FROM weihuda_new.jifen_exchange
         WHERE id = ? AND deletedAt IS NULL
         "#,
         id
@@ -146,20 +140,41 @@ pub async fn get_goods_record(id: u32) -> AppResult<Option<GoodsRecord>> {
     .map(|r| GoodsRecord {
         id: r.id,
         stu_id: r.stuId,
-        goods_id: r.goodsId.unwrap_or_default(),
-        exchange_time: r.exchangeTime,
-        status: GoodsRecordStatus::from(r.status.unwrap_or_default() as u32),
+        goods_id: r.goodsId,
+        created_at: r.createdAt,
+        status: GoodsRecordStatus::from(r.status),
         receive_time: r.receiveTime,
-        comment: r.comment,
     });
     Ok(res)
+}
+
+pub async fn update_goods_record(
+    id: u32,
+    status: GoodsRecordStatus,
+    receive_time: Option<chrono::NaiveDateTime>,
+) -> AppResult<()> {
+    let now = utils::now_time();
+    sqlx::query!(
+        r#"
+        UPDATE weihuda_new.jifen_exchange
+        SET status = ?, receiveTime = ?, updatedAt = ?
+        WHERE id = ? AND deletedAt IS NULL
+        "#,
+        u32::from(status),
+        receive_time,
+        now,
+        id
+    )
+    .execute(get_db_pool().await)
+    .await?;
+    Ok(())
 }
 
 pub async fn delete_goods_record(id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE weihuda.goods_records
+        UPDATE weihuda_new.jifen_exchange
         SET deletedAt = ?
         WHERE id = ?
         "#,
@@ -177,9 +192,8 @@ pub struct JifenGoods {
     pub name: String,
     pub cover: String,
     pub count: u32,
-    pub price: u32,
+    pub price: i32,
     pub description: Option<String>,
-    // TODO 数据库中是可为 NULL 的字段，但应该不是这样
     pub enabled: bool,
 }
 
@@ -187,8 +201,9 @@ pub async fn get_goods_list() -> AppResult<Vec<JifenGoods>> {
     let res = sqlx::query!(
         r#"
         SELECT id, name, cover, count, price, description, enabled
-        FROM weihuda.jifen_goods
+        FROM weihuda_new.jifen_goods
         WHERE deletedAt IS NULL
+        ORDER BY id DESC
         "#,
     )
     .fetch_all(get_db_pool().await)
@@ -198,10 +213,10 @@ pub async fn get_goods_list() -> AppResult<Vec<JifenGoods>> {
         id: r.id,
         name: r.name,
         cover: r.cover,
-        count: r.count as u32,
-        price: r.price as u32,
+        count: r.count,
+        price: r.price,
         description: r.description,
-        enabled: r.enabled.unwrap_or_default() != 0,
+        enabled: r.enabled != 0,
     })
     .collect::<Vec<_>>();
     Ok(res)
@@ -211,22 +226,22 @@ pub async fn add_goods(
     name: &str,
     cover: &str,
     count: u32,
-    price: u32,
+    price: i32,
     description: Option<&str>,
     enabled: bool,
 ) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
-        INSERT INTO weihuda.jifen_goods (name, cover, count, price, description, enabled, createdAt, updatedAt)
+        INSERT INTO weihuda_new.jifen_goods (name, cover, count, price, description, enabled, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         "#,
         name,
         cover,
-        count as i32,
-        price as i32,
+        count,
+        price,
         description,
-        if enabled { 1 } else { 0 },
+        enabled as u32,
         now,
         now
     )
@@ -240,23 +255,23 @@ pub async fn update_goods(
     name: &str,
     cover: &str,
     count: u32,
-    price: u32,
+    price: i32,
     description: Option<&str>,
     enabled: bool,
 ) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.jifen_goods
+        UPDATE weihuda_new.jifen_goods
         SET name = ?, cover = ?, count = ?, price = ?, description = ?, enabled = ?, updatedAt = ?
         WHERE id = ?
         "#,
         name,
         cover,
-        count as i32,
-        price as i32,
+        count,
+        price,
         description,
-        if enabled { 1 } else { 0 },
+        enabled as u32,
         now,
         id
     )
@@ -266,10 +281,10 @@ pub async fn update_goods(
 }
 
 pub async fn delete_goods(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.jifen_goods
+        UPDATE weihuda_new.jifen_goods
         SET deletedAt = ?
         WHERE id = ?
         "#,
@@ -290,6 +305,7 @@ pub struct JifenRecord {
     pub stu_id: String,
     pub desc: String,
     pub jifen: i32,
+    pub created_at: chrono::NaiveDateTime,
 }
 
 pub async fn get_record_list(
@@ -301,43 +317,66 @@ pub async fn get_record_list(
 ) -> AppResult<(u32, Vec<JifenRecord>)> {
     let mut main_query = sqlx::QueryBuilder::new(
         r#"
-        SELECT id, `key`, `param`, stuId, `desc`, jifen
-        FROM weihuda.jifen_records
-        WHERE deletedAt IS NULL
+        SELECT id, `key`, `param`, stuId, `desc`, jifen, createdAt
+        FROM weihuda_new.jifen_records
         "#,
     );
     let mut count_query = sqlx::QueryBuilder::new(
         r#"
         SELECT COUNT(*) AS count
-        FROM weihuda.jifen_records
-        WHERE deletedAt IS NULL
+        FROM weihuda_new.jifen_records
         "#,
     );
 
+    let mut first_condition = true;
+
     if let Some(key) = key {
+        if first_condition {
+            main_query.push(" WHERE ");
+            count_query.push(" WHERE ");
+            first_condition = false;
+        } else {
+            main_query.push(" AND ");
+            count_query.push(" AND ");
+        }
         main_query
-            .push(" AND `key` LIKE ")
+            .push("`key` LIKE ")
             .push_bind(format!("%{}%", key));
         count_query
-            .push(" AND `key` LIKE ")
+            .push("`key` LIKE ")
             .push_bind(format!("%{}%", key));
     }
 
     if let Some(param) = param {
+        if first_condition {
+            main_query.push(" WHERE ");
+            count_query.push(" WHERE ");
+            first_condition = false;
+        } else {
+            main_query.push(" AND ");
+            count_query.push(" AND ");
+        }
         main_query
-            .push(" AND `param` LIKE ")
+            .push("`param` LIKE ")
             .push_bind(format!("%{}%", param));
         count_query
-            .push(" AND `param` LIKE ")
+            .push("`param` LIKE ")
             .push_bind(format!("%{}%", param));
     }
 
     if let Some(stu_id) = stu_id {
+        if first_condition {
+            main_query.push(" WHERE ");
+            count_query.push(" WHERE ");
+        } else {
+            main_query.push(" AND ");
+            count_query.push(" AND ");
+        }
         main_query
-            .push(" AND stuId LIKE ")
+            .push("stuId LIKE ")
             .push_bind(format!("%{}%", stu_id));
         count_query
-            .push(" AND stuId LIKE ")
+            .push("stuId LIKE ")
             .push_bind(format!("%{}%", stu_id));
     }
 
@@ -353,12 +392,13 @@ pub async fn get_record_list(
         .await?
         .into_iter()
         .map(|r| JifenRecord {
-            id: r.get::<i64, _>("id") as u32,
+            id: r.get("id"),
             key: r.get("key"),
             param: r.get("param"),
             stu_id: r.get("stuId"),
             desc: r.get("desc"),
             jifen: r.get("jifen"),
+            created_at: r.get("createdAt"),
         })
         .collect::<Vec<_>>();
 
@@ -373,9 +413,9 @@ pub async fn get_record_list(
 pub async fn get_record(id: u32) -> AppResult<Option<JifenRecord>> {
     let res = sqlx::query!(
         r#"
-        SELECT id, `key`, `param`, stuId, `desc`, jifen
-        FROM weihuda.jifen_records
-        WHERE id = ? AND deletedAt IS NULL
+        SELECT id, `key`, `param`, stuId, `desc`, jifen, createdAt
+        FROM weihuda_new.jifen_records
+        WHERE id = ?
         "#,
         id
     )
@@ -388,6 +428,7 @@ pub async fn get_record(id: u32) -> AppResult<Option<JifenRecord>> {
         stu_id: r.stuId,
         desc: r.desc,
         jifen: r.jifen,
+        created_at: r.createdAt,
     });
     Ok(res)
 }
@@ -399,18 +440,17 @@ pub async fn add_record(
     desc: &str,
     jifen: i32,
 ) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
-        INSERT INTO weihuda.jifen_records (`key`, `param`, stuId, `desc`, jifen, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO weihuda_new.jifen_records (`key`, `param`, stuId, `desc`, jifen, createdAt)
+        VALUES (?, ?, ?, ?, ?, ?)
         "#,
         key,
         param,
         stu_id,
         desc,
         jifen,
-        now,
         now
     )
     .execute(get_db_pool().await)
@@ -418,36 +458,16 @@ pub async fn add_record(
     Ok(res.last_insert_id() as u32)
 }
 
-pub async fn delete_record(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
-    sqlx::query!(
-        r#"
-        UPDATE weihuda.jifen_records
-        SET deletedAt = ?
-        WHERE id = ?
-        "#,
-        now,
-        id
-    )
-    .execute(get_db_pool().await)
-    .await?;
-    Ok(())
-}
-
 pub async fn update_jifen(stu_id: &str, delta: i32) -> AppResult<()> {
-    sqlx::query!(
-        "INSERT IGNORE INTO weihuda.mini_jifen (stuID, jifen) VALUES (?, 0)",
-        stu_id
-    )
-    .execute(get_db_pool().await)
-    .await?;
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.mini_jifen
-        SET jifen = jifen + ?
-        WHERE stuID = ?
+        UPDATE weihuda_new.mini_bind
+        SET jifen = jifen + ?, updatedAt = ?
+        WHERE stuId = ?
         "#,
         delta,
+        now,
         stu_id
     )
     .execute(get_db_pool().await)
@@ -464,16 +484,16 @@ pub struct JifenRule {
     pub jifen: i32,
     pub cycle: u32,
     pub max_count: u32,
-    // TODO 数据库中是可为 NULL 的字段，但应该不是这样
-    pub enabled: bool,
+    pub is_show: bool,
 }
 
 pub async fn get_rule_list() -> AppResult<Vec<JifenRule>> {
     let res = sqlx::query!(
         r#"
-        SELECT id, `key`, name, jifen, cycle, maxCount, enabled
-        FROM weihuda.jifen_rules
+        SELECT id, `key`, name, jifen, cycle, maxCount, isShow
+        FROM weihuda_new.jifen_rules
         WHERE deletedAt IS NULL
+        ORDER BY id DESC
         "#,
     )
     .fetch_all(get_db_pool().await)
@@ -484,9 +504,9 @@ pub async fn get_rule_list() -> AppResult<Vec<JifenRule>> {
         key: r.key,
         name: r.name,
         jifen: r.jifen,
-        cycle: r.cycle as u32,
-        max_count: r.maxCount as u32,
-        enabled: r.enabled.unwrap_or_default() != 0,
+        cycle: r.cycle,
+        max_count: r.maxCount,
+        is_show: r.isShow != 0,
     })
     .collect::<Vec<_>>();
     Ok(res)
@@ -498,20 +518,20 @@ pub async fn add_rule(
     jifen: i32,
     cycle: u32,
     max_count: u32,
-    enabled: bool,
+    is_show: bool,
 ) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
-        INSERT INTO weihuda.jifen_rules (`key`, name, jifen, cycle, maxCount, enabled, createdAt, updatedAt)
+        INSERT INTO weihuda_new.jifen_rules (`key`, name, jifen, cycle, maxCount, isShow, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         "#,
         key,
         name,
         jifen,
-        cycle as i32,
-        max_count as i32,
-        if enabled { 1 } else { 0 },
+        cycle,
+        max_count,
+        is_show as u32,
         now,
         now
     )
@@ -527,21 +547,21 @@ pub async fn update_rule(
     jifen: i32,
     cycle: u32,
     max_count: u32,
-    enabled: bool,
+    is_show: bool,
 ) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.jifen_rules
-        SET `key` = ?, name = ?, jifen = ?, cycle = ?, maxCount = ?, enabled = ?, updatedAt = ?
+        UPDATE weihuda_new.jifen_rules
+        SET `key` = ?, name = ?, jifen = ?, cycle = ?, maxCount = ?, isShow = ?, updatedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
         key,
         name,
         jifen,
-        cycle as i32,
-        max_count as i32,
-        if enabled { 1 } else { 0 },
+        cycle,
+        max_count,
+        is_show as u32,
         now,
         id
     )
@@ -551,10 +571,10 @@ pub async fn update_rule(
 }
 
 pub async fn delete_rule(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
-        UPDATE weihuda.jifen_rules
+        UPDATE weihuda_new.jifen_rules
         SET deletedAt = ?
         WHERE id = ?
         "#,

@@ -1,11 +1,11 @@
-use crate::infra;
 pub use crate::infra::mysql::jifen::{
     GoodsRecordStatus, delete_goods_record, get_goods_record, get_goods_record_list,
 };
+use crate::{infra, utils};
 
 pub use crate::infra::mysql::jifen::{add_goods, delete_goods, get_goods_list, update_goods};
 
-pub use crate::infra::mysql::jifen::{delete_record, get_record, get_record_list};
+pub use crate::infra::mysql::jifen::{get_record, get_record_list};
 
 pub use crate::infra::mysql::jifen::{add_rule, delete_rule, get_rule_list, update_rule};
 
@@ -23,6 +23,16 @@ pub async fn add_record(
             .await?;
     infra::mysql::jifen::update_jifen(stu_id, delta).await?;
     Ok(res)
+}
+
+pub async fn receive_goods(id: u32) -> AppResult<()> {
+    infra::mysql::jifen::update_goods_record(
+        id,
+        GoodsRecordStatus::Received,
+        Some(utils::now_time()),
+    )
+    .await?;
+    Ok(())
 }
 
 #[cfg(test)]

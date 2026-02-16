@@ -39,6 +39,7 @@ async fn get_zhihu_list(req: &mut salvo::Request) -> RouterResult {
         tags: Option<String>,
         status: Option<u32>,
         stu_id: Option<String>,
+        top: Option<bool>,
     }
     let GetZhihuListReq {
         page,
@@ -47,6 +48,7 @@ async fn get_zhihu_list(req: &mut salvo::Request) -> RouterResult {
         tags,
         status,
         stu_id,
+        top,
     } = req.extract().await?;
     let status = status.map(ZhihuStatus::from);
     let page = page.unwrap_or(1);
@@ -58,6 +60,7 @@ async fn get_zhihu_list(req: &mut salvo::Request) -> RouterResult {
         tags.as_deref(),
         status,
         stu_id.as_deref(),
+        top,
     )
     .await?;
     Ok(json!({
@@ -103,7 +106,7 @@ async fn post_zhihu(req: &mut salvo::Request) -> RouterResult {
         tags: String,
         cover: Option<String>,
         status: u32,
-        publish_time: chrono::NaiveDateTime,
+        top: bool,
     }
     let param: PostZhihuReq = req.extract().await?;
     let status = ZhihuStatus::from(param.status);
@@ -115,8 +118,9 @@ async fn post_zhihu(req: &mut salvo::Request) -> RouterResult {
         tags: param.tags,
         cover: param.cover,
         status,
-        publish_time: param.publish_time,
         stu_id: user.info.stu_id,
+        top: param.top,
+        created_at: utils::now_time(),
     };
     let res = service::weihuda::zhihu::add_zhihu(&info).await?;
     let new_zhihu = service::weihuda::zhihu::get_zhihu(res)
@@ -144,6 +148,7 @@ async fn put_zhihu(req: &mut salvo::Request) -> RouterResult {
         tags: String,
         cover: Option<String>,
         status: u32,
+        top: bool,
     }
     let param: PutZhihuReq = req.extract().await?;
     let status = ZhihuStatus::from(param.status);
@@ -157,7 +162,8 @@ async fn put_zhihu(req: &mut salvo::Request) -> RouterResult {
         tags: param.tags,
         cover: param.cover,
         status,
-        publish_time: zhihu.info.publish_time,
+        top: param.top,
+        created_at: utils::now_time(),
         stu_id: zhihu.info.stu_id,
     };
     service::weihuda::zhihu::update_zhihu(param.id, &info).await?;
