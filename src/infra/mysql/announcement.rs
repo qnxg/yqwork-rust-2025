@@ -1,14 +1,19 @@
+use chrono::{DateTime, Utc};
+
 use super::get_db_pool;
 use crate::result::AppResult;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Announcement {
     pub id: u32,
     pub title: String,
     pub content: String,
     pub url: Option<String>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
+/// 已经删除的公告也会获取
 pub async fn get_announcement_list(
     page: u32,
     page_size: u32,
@@ -16,9 +21,10 @@ pub async fn get_announcement_list(
     let res = sqlx::query_as!(
         Announcement,
         r#"
-        SELECT id, title, content, url FROM weihuda.mini_message
-        WHERE deleted_at IS NULL
-        ORDER BY id DESC
+        SELECT id, title, content, url, deleted_at FROM weihuda.mini_message
+        ORDER BY 
+            CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END, 
+            id DESC
         LIMIT ? OFFSET ?
         "#,
         page_size,
@@ -30,7 +36,6 @@ pub async fn get_announcement_list(
     let total: i64 = sqlx::query_scalar!(
         r#"
         SELECT COUNT(*) as count FROM weihuda.mini_message
-        WHERE deleted_at IS NULL
         "#
     )
     .fetch_one(get_db_pool().await)
@@ -43,7 +48,7 @@ pub async fn get_announcement(id: u32) -> AppResult<Option<Announcement>> {
     let res = sqlx::query_as!(
         Announcement,
         r#"
-        SELECT id, title, content, url FROM weihuda.mini_message
+        SELECT id, title, content, url, deleted_at FROM weihuda.mini_message
         WHERE id = ? AND deleted_at IS NULL
         "#,
         id,

@@ -1,3 +1,4 @@
+
 use anyhow::anyhow;
 
 use super::get_db_pool;
@@ -185,7 +186,6 @@ pub struct WorkHourRecord {
     pub work_hour_id: u32,
     pub user_id: u32,
     pub work_descs: Vec<WorkDesc>,
-    pub includes: Option<Vec<WorkInclude>>,
     pub comment: Option<String>,
     pub status: WorkHourRecordStatus,
 }
@@ -265,10 +265,6 @@ pub async fn get_work_hour_record(
         work_hour_id: r.workHourId,
         user_id: r.userId,
         work_descs: serde_json::from_str::<Vec<WorkDesc>>(&r.workDescs).unwrap_or_default(),
-        includes: r
-            .includes
-            .as_ref()
-            .and_then(|inc| serde_json::from_str::<Vec<WorkInclude>>(inc).ok()),
         comment: r.comment,
         status: WorkHourRecordStatus::from(r.status),
     });
@@ -291,35 +287,45 @@ pub async fn get_work_hour_record_by_id(id: u32) -> AppResult<Option<WorkHourRec
         work_hour_id: r.workHourId,
         user_id: r.userId,
         work_descs: serde_json::from_str::<Vec<WorkDesc>>(&r.workDescs).unwrap_or_default(),
-        includes: r
-            .includes
-            .as_ref()
-            .and_then(|inc| serde_json::from_str::<Vec<WorkInclude>>(inc).ok()),
         comment: r.comment,
         status: WorkHourRecordStatus::from(r.status),
     });
     Ok(res)
 }
 
+/// 不校验 id 是否存在，需要确保 id 存在后再调用此函数
+pub async fn get_work_hour_record_includes(id: u32) -> AppResult<Vec<WorkInclude>> {
+    let res = sqlx::query!(
+        r#"
+        SELECT includes
+        FROM yqwork.work_hours_records
+        WHERE id = ? AND deletedAt IS NULL
+        "#,
+        id
+    )
+    .fetch_one(get_db_pool().await)
+    .await?
+    .includes;
+    let includes = if let Some(inc) = res {
+        serde_json::from_str::<Vec<WorkInclude>>(&inc).unwrap_or_default()
+    } else {
+        vec![]
+    };
+    Ok(includes)
+}
+
 /// 返回财务视角的工时记录列表
-/// stu_id 不是关键字。设置后将会只返回指定 stu_id 的记录
 /// 只显示通过部门负责人审核的记录
-pub async fn get_work_hour_record_list(
-    page: u32,
-    page_size: u32,
-    work_hour_id: u32,
-) -> AppResult<(u32, Vec<WorkHourRecord>)> {
+/// 不提供 page_size 的话将不会开启分页，page 参数无效
+pub async fn get_work_hour_record_list(work_hour_id: u32) -> AppResult<Vec<WorkHourRecord>> {
     let res = sqlx::query!(
         r#"
         SELECT id, workHourId, userId, workDescs, includes, comment, status
         FROM yqwork.work_hours_records
         WHERE workHourId = ? AND deletedAt IS NULL AND status >= 2
-        ORDER BY id DESC
-        LIMIT ? OFFSET ?
+        ORDER BY status ASC, id DESC
         "#,
         work_hour_id,
-        page_size,
-        (page - 1) * page_size,
     )
     .fetch_all(get_db_pool().await)
     .await?
@@ -329,33 +335,18 @@ pub async fn get_work_hour_record_list(
         work_hour_id: r.workHourId,
         user_id: r.userId,
         work_descs: serde_json::from_str::<Vec<WorkDesc>>(&r.workDescs).unwrap_or_default(),
-        includes: r
-            .includes
-            .as_ref()
-            .and_then(|inc| serde_json::from_str::<Vec<WorkInclude>>(inc).ok()),
         comment: r.comment,
         status: WorkHourRecordStatus::from(r.status),
     })
     .collect::<Vec<_>>();
-    let count: i64 = sqlx::query_scalar!(
-        r#"
-        SELECT COUNT(*) as count FROM yqwork.work_hours_records
-        WHERE workHourId = ? AND deletedAt IS NULL
-        "#,
-        work_hour_id
-    )
-    .fetch_one(get_db_pool().await)
-    .await?;
-    Ok((count as u32, res))
+    Ok(res)
 }
 
 /// 只显示已经提交，等待部门负责人审核的记录
 pub async fn get_work_hour_record_department_list(
-    page: u32,
-    page_size: u32,
     work_hour_id: u32,
     department_id: u32,
-) -> AppResult<(u32, Vec<WorkHourRecord>)> {
+) -> AppResult<Vec<WorkHourRecord>> {
     let res = sqlx::query!(
         r#"
         SELECT whr.id, whr.workHourId, whr.userId, whr.workDescs, whr.includes, whr.comment, whr.status
@@ -363,39 +354,19 @@ pub async fn get_work_hour_record_department_list(
         INNER JOIN yqwork.users u
         ON whr.userId = u.id
         WHERE whr.workHourId = ? AND u.departmentId = ? AND whr.deletedAt IS NULL AND whr.status >= 1
-        ORDER BY whr.id DESC
-        LIMIT ?
-        OFFSET ?
+        ORDER BY whr.status ASC, whr.id DESC
         "#,
         work_hour_id,
         department_id,
-        page_size,
-        (page - 1) * page_size,
     ).fetch_all(get_db_pool().await).await?.into_iter().map(|r| WorkHourRecord {
         id: r.id,
         work_hour_id: r.workHourId,
         user_id: r.userId,
         work_descs: serde_json::from_str::<Vec<WorkDesc>>(&r.workDescs).unwrap_or_default(),
-        includes: r
-            .includes
-            .as_ref()
-            .and_then(|inc| serde_json::from_str::<Vec<WorkInclude>>(inc).ok()),
         comment: r.comment,
         status: WorkHourRecordStatus::from(r.status),
     }).collect::<Vec<_>>();
-    let count: i64 = sqlx::query_scalar!(
-        r#"
-        SELECT COUNT(*) as count
-        FROM yqwork.work_hours_records r
-        JOIN yqwork.users u ON r.userId = u.id
-        WHERE r.workHourId = ? AND u.departmentId = ? AND r.deletedAt IS NULL
-        "#,
-        work_hour_id,
-        department_id
-    )
-    .fetch_one(get_db_pool().await)
-    .await?;
-    Ok((count as u32, res))
+    Ok(res)
 }
 
 pub async fn get_my_work_hour_record(
@@ -418,10 +389,6 @@ pub async fn get_my_work_hour_record(
         work_hour_id: r.workHourId,
         user_id: r.userId,
         work_descs: serde_json::from_str::<Vec<WorkDesc>>(&r.workDescs).unwrap_or_default(),
-        includes: r
-            .includes
-            .as_ref()
-            .and_then(|inc| serde_json::from_str::<Vec<WorkInclude>>(inc).ok()),
         comment: r.comment,
         status: WorkHourRecordStatus::from(r.status),
     });

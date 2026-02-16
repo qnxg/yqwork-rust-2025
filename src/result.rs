@@ -44,7 +44,7 @@ impl salvo::Scribe for AppError {
         tracing::error!("{:#?}", self);
         match self {
             AppError::Anyhow(_) | AppError::DatabaseError(_) => res.stuff(
-                StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::OK,
                 Json(serde_json::json!({
                     "code": 500,
                     "data": null,
@@ -52,7 +52,7 @@ impl salvo::Scribe for AppError {
                 })),
             ),
             AppError::SalvoParseError(_) | AppError::ParamParseError => res.stuff(
-                StatusCode::BAD_REQUEST,
+                StatusCode::OK,
                 Json(serde_json::json!({
                     "code": 400,
                     "data": null,
@@ -60,7 +60,7 @@ impl salvo::Scribe for AppError {
                 })),
             ),
             AppError::PermissionDenied => res.stuff(
-                StatusCode::FORBIDDEN,
+                StatusCode::OK,
                 Json(serde_json::json!({
                     "code": 403,
                     "data": null,
@@ -68,7 +68,7 @@ impl salvo::Scribe for AppError {
                 })),
             ),
             AppError::Unauthorized => res.stuff(
-                StatusCode::UNAUTHORIZED,
+                StatusCode::OK,
                 Json(serde_json::json!({
                     "code": 401,
                     "data": null,
@@ -76,7 +76,7 @@ impl salvo::Scribe for AppError {
                 })),
             ),
             AppError::TimeoutError => res.stuff(
-                StatusCode::REQUEST_TIMEOUT,
+                StatusCode::OK,
                 Json(serde_json::json!({
                     "code": 408,
                     "data": null,

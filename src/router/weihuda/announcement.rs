@@ -1,5 +1,4 @@
 use crate::result::AppError;
-use crate::service::weihuda::announcement::Announcement;
 use crate::utils;
 use anyhow::anyhow;
 use salvo::{handler, macros::Extractible};
@@ -87,13 +86,8 @@ async fn post_announcement(req: &mut salvo::Request) -> RouterResult {
     } = req.extract().await?;
     let res =
         service::weihuda::announcement::add_announcement(&title, &content, url.as_deref()).await?;
-    Ok(Announcement {
-        id: res,
-        title,
-        content,
-        url,
-    }
-    .into())
+    let new_announcement = service::weihuda::announcement::get_announcement(res).await?;
+    Ok(new_announcement.into())
 }
 
 #[handler]

@@ -49,7 +49,7 @@ async fn get_role_list(req: &mut salvo::Request) -> RouterResult {
 async fn post_role(req: &mut salvo::Request) -> RouterResult {
     if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req).await?.id)
         .await?
-        .has(&format!("{}:query", ROLE_PERMISSION_PREFIX))
+        .has(&format!("{}:post", ROLE_PERMISSION_PREFIX))
     {
         return Err(AppError::PermissionDenied);
     }
@@ -84,7 +84,7 @@ async fn post_role(req: &mut salvo::Request) -> RouterResult {
 async fn put_role(req: &mut salvo::Request) -> RouterResult {
     if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req).await?.id)
         .await?
-        .has(&format!("{}:query", ROLE_PERMISSION_PREFIX))
+        .has(&format!("{}:update", ROLE_PERMISSION_PREFIX))
     {
         return Err(AppError::PermissionDenied);
     }
@@ -118,7 +118,7 @@ async fn put_role(req: &mut salvo::Request) -> RouterResult {
 async fn delete_role(req: &mut salvo::Request) -> RouterResult {
     if !service::qnxg::user::get_user_permission(crate::utils::auth::parse_token(req).await?.id)
         .await?
-        .has(&format!("{}:query", ROLE_PERMISSION_PREFIX))
+        .has(&format!("{}:delete", ROLE_PERMISSION_PREFIX))
     {
         return Err(AppError::PermissionDenied);
     }

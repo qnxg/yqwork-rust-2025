@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::result::{AppError, RouterResult};
 use crate::service::qnxg::permission::PermissionItem;
 use crate::service::qnxg::user::{User, UserBasicInfo, UserStatus};
@@ -77,9 +79,19 @@ async fn get_user_list(req: &mut salvo::Request) -> RouterResult {
             .await?
         }
     };
+    // 生成一个用户id及其角色列表的 map
+    let user_roles_map = {
+        let mut map = HashMap::new();
+        for user in &rows {
+            let roles = service::qnxg::role::get_user_roles(user.id).await?;
+            map.insert(user.id, roles);
+        }
+        map
+    };
     Ok(json!({
         "count": count,
         "rows": rows,
+        "userRolesMap": user_roles_map,
     })
     .into())
 }
@@ -193,6 +205,7 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
         // 普通用户不能更改
         stu_id: String,
         email: Option<String>,
+        // 普通用户不能更改
         xueyuan: u32,
         // 普通用户不能更改
         gangwei: Option<String>,
@@ -233,6 +246,7 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
             || status != res_user.info.status
             || param.password.is_some()
             || param.role_id.is_some())
+            || param.xueyuan != res_user.info.xueyuan
     {
         return Err(AppError::PermissionDenied);
     }
