@@ -67,7 +67,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_wx_url_resolve() {
-        let res = wx_url_resolve("https://mp.weixin.qq.com/s/DrqGYQUCTNqkLdYFLmX-pg").await.unwrap();
+        let res = wx_url_resolve("https://mp.weixin.qq.com/s/DrqGYQUCTNqkLdYFLmX-pg")
+            .await
+            .unwrap();
         println!("{:?}", res);
     }
 }

@@ -5,8 +5,8 @@ use crate::{
 };
 use anyhow::anyhow;
 use salvo::handler;
+use salvo::http::{StatusCode, header};
 use salvo::macros::Extractible;
-use salvo::http::{header, StatusCode};
 use serde_json::json;
 
 const ZHIHU_PERMISSION_PREFIX: &str = "hdwsh:zhihu";
@@ -216,10 +216,7 @@ async fn get_wx_img_proxy(req: &mut salvo::Request, res: &mut salvo::Response) -
     }
     let GetWxImgProxyReq { url } = req.extract().await?;
     let proxy = service::weihuda::zhihu::wx_url_proxy(&url).await?;
-    let content_type = proxy
-        .content_type
-        .as_deref()
-        .unwrap_or("image/jpeg");
+    let content_type = proxy.content_type.as_deref().unwrap_or("image/jpeg");
     let _ = res.add_header(header::CONTENT_TYPE, content_type, true);
     res.status_code(StatusCode::OK);
     res.body(proxy.bytes);

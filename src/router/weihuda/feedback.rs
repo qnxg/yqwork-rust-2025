@@ -213,7 +213,8 @@ async fn delete_feedback_msg(req: &mut salvo::Request) -> RouterResult {
     }
     if !service::weihuda::feedback::get_feedback_msg_list(id)
         .await?
-        .iter().any(|msg| msg.id == msg_id)
+        .iter()
+        .any(|msg| msg.id == msg_id)
     {
         return Err(anyhow!("反馈消息不存在").into());
     }
