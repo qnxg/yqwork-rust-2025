@@ -14,8 +14,8 @@ pub async fn get_user_roles(user_id: u32) -> AppResult<Vec<Role>> {
     let res = sqlx::query!(
         r#"
         SELECT id, name
-        FROM yqwork.system_user_role ur
-        INNER JOIN yqwork.roles r
+        FROM yqwork_new.system_user_role ur
+        INNER JOIN yqwork_new.roles r
         ON r.id = ur.roleId
         WHERE ur.userId = ? AND r.deletedAt IS NULL
         "#,
@@ -40,7 +40,7 @@ pub async fn update_user_roles(user_id: u32, role_id: &[u32]) -> AppResult<()> {
 
     sqlx::query!(
         r#"
-        DELETE FROM yqwork.system_user_role
+        DELETE FROM yqwork_new.system_user_role
         WHERE userId = ?
         "#,
         user_id
@@ -51,7 +51,7 @@ pub async fn update_user_roles(user_id: u32, role_id: &[u32]) -> AppResult<()> {
     for r_id in role_id {
         sqlx::query!(
             r#"
-            INSERT INTO yqwork.system_user_role (userId, roleId, createdAt, updatedAt)
+            INSERT INTO yqwork_new.system_user_role (userId, roleId, createdAt, updatedAt)
             VALUES (?, ?, ?, ?)
             "#,
             user_id,
@@ -71,7 +71,7 @@ pub async fn get_role_list() -> AppResult<Vec<Role>> {
     let res = sqlx::query!(
         r#"
         SELECT id, name
-        FROM yqwork.roles
+        FROM yqwork_new.roles
         WHERE deletedAt IS NULL
         "#
     )
@@ -91,8 +91,8 @@ pub async fn get_role_permission(role_id: &[u32]) -> AppResult<Permission> {
     let query_str = format!(
         r#"
             SELECT DISTINCT p.id, p.name, p.permission
-            FROM yqwork.system_role_permission rp 
-            INNER JOIN yqwork.permissions p 
+            FROM yqwork_new.system_role_permission rp 
+            INNER JOIN yqwork_new.permissions p 
             ON p.id = rp.permissionId 
             WHERE p.deletedAt IS NULL AND rp.roleId IN ({})
             "#,
@@ -123,7 +123,7 @@ pub async fn update_role(role_id: u32, name: &str, permission: &[u32]) -> AppRes
 
     sqlx::query!(
         r#"
-        UPDATE yqwork.roles
+        UPDATE yqwork_new.roles
         SET name = ?, updatedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -136,7 +136,7 @@ pub async fn update_role(role_id: u32, name: &str, permission: &[u32]) -> AppRes
 
     sqlx::query!(
         r#"
-        DELETE FROM yqwork.system_role_permission
+        DELETE FROM yqwork_new.system_role_permission
         WHERE roleId = ?
         "#,
         role_id
@@ -147,7 +147,7 @@ pub async fn update_role(role_id: u32, name: &str, permission: &[u32]) -> AppRes
     for perm_id in permission {
         sqlx::query!(
             r#"
-            INSERT INTO yqwork.system_role_permission (roleId, permissionId, createdAt, updatedAt)
+            INSERT INTO yqwork_new.system_role_permission (roleId, permissionId, createdAt, updatedAt)
             VALUES (?, ?, ?, ?)
             "#,
             role_id,
@@ -171,7 +171,7 @@ pub async fn add_role(name: &str, permission: &[u32]) -> AppResult<u32> {
 
     let res = sqlx::query!(
         r#"
-        INSERT INTO yqwork.roles (name, createdAt, updatedAt)
+        INSERT INTO yqwork_new.roles (name, createdAt, updatedAt)
         VALUES (?, ?, ?)
         "#,
         name,
@@ -185,7 +185,7 @@ pub async fn add_role(name: &str, permission: &[u32]) -> AppResult<u32> {
     for perm_id in permission {
         sqlx::query!(
             r#"
-            INSERT INTO yqwork.system_role_permission (roleId, permissionId, createdAt, updatedAt)
+            INSERT INTO yqwork_new.system_role_permission (roleId, permissionId, createdAt, updatedAt)
             VALUES (?, ?, ?, ?)
             "#,
             role_id,
@@ -205,7 +205,7 @@ pub async fn delete_role(id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.roles
+        UPDATE yqwork_new.roles
         SET deletedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,

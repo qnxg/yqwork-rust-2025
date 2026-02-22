@@ -356,6 +356,7 @@ async fn put_pwd(req: &mut salvo::Request) -> RouterResult {
     let Some(pwd) = service::qnxg::user::get_user_password(user_id).await? else {
         return Err(AppError::Unauthorized);
     };
+    let old_password = utils::md5_hash(&old_password);
     if pwd != old_password {
         return Err(anyhow!("旧密码错误").into());
     }

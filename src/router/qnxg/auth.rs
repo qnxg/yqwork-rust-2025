@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use salvo::{handler, macros::Extractible};
 
-use crate::{result::RouterResult, service};
+use crate::{result::RouterResult, service, utils};
 
 pub fn routers() -> salvo::Router {
     salvo::Router::new()
@@ -29,6 +29,7 @@ async fn login(req: &mut salvo::Request) -> RouterResult {
         password: String,
     }
     let LoginReq { username, password } = req.extract().await?;
+    let password = utils::md5_hash(&password);
     let Some(user) = service::qnxg::user::get_user_by_stu_id(&username).await? else {
         return Err(anyhow!("用户名或密码错误").into());
     };

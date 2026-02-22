@@ -40,7 +40,7 @@ pub async fn get_permission_list() -> AppResult<Vec<PermissionItem>> {
     let res = sqlx::query!(
         r#"
         SELECT id, name, permission
-        FROM yqwork.permissions
+        FROM yqwork_new.permissions
         WHERE deletedAt IS NULL
         "#
     )
@@ -60,7 +60,7 @@ pub async fn update_permission(id: u32, name: &str, permission: &str) -> AppResu
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.permissions
+        UPDATE yqwork_new.permissions
         SET name = ?, permission = ?, updatedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -78,7 +78,7 @@ pub async fn add_permission(name: &str, permission: &str) -> AppResult<u32> {
     let now = chrono::Utc::now().naive_utc();
     let res = sqlx::query!(
         r#"
-        INSERT INTO yqwork.permissions (name, permission, createdAt, updatedAt)
+        INSERT INTO yqwork_new.permissions (name, permission, createdAt, updatedAt)
         VALUES (?, ?, ?, ?)
         "#,
         name,
@@ -95,7 +95,7 @@ pub async fn delete_permission(id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.permissions
+        UPDATE yqwork_new.permissions
         SET deletedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,

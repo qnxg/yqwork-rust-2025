@@ -12,7 +12,7 @@ pub async fn get_department_list() -> AppResult<Vec<Department>> {
     let departments = sqlx::query!(
         r#"
         SELECT id, name, `desc`
-        FROM yqwork.departments
+        FROM yqwork_new.departments
         WHERE deletedAt IS NULL
         "#,
     )
@@ -33,7 +33,7 @@ pub async fn add_department(name: &str, desc: &str) -> AppResult<u32> {
     let now = chrono::Utc::now().naive_utc();
     let res = sqlx::query!(
         r#"
-        INSERT INTO yqwork.departments (name, `desc`, createdAt, updatedAt)
+        INSERT INTO yqwork_new.departments (name, `desc`, createdAt, updatedAt)
         VALUES (?, ?, ?, ?)
         "#,
         name,
@@ -50,7 +50,7 @@ pub async fn update_department(id: u32, name: &str, desc: &str) -> AppResult<()>
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.departments
+        UPDATE yqwork_new.departments
         SET name = ?, `desc` = ?, updatedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -68,7 +68,7 @@ pub async fn delete_department(id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.departments
+        UPDATE yqwork_new.departments
         SET deletedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,

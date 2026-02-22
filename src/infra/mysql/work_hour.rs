@@ -59,7 +59,7 @@ pub async fn get_work_hour_list(page: u32, page_size: u32) -> AppResult<(u32, Ve
     let res = sqlx::query!(
         r#"
         SELECT id, name, endTime, status, comment
-        FROM yqwork.work_hours
+        FROM yqwork_new.work_hours
         WHERE deletedAt IS NULL
         ORDER BY id DESC
         LIMIT ? OFFSET ?
@@ -81,7 +81,7 @@ pub async fn get_work_hour_list(page: u32, page_size: u32) -> AppResult<(u32, Ve
 
     let total: i64 = sqlx::query_scalar!(
         r#"
-        SELECT COUNT(*) as count FROM yqwork.work_hours
+        SELECT COUNT(*) as count FROM yqwork_new.work_hours
         WHERE deletedAt IS NULL
         "#
     )
@@ -95,7 +95,7 @@ pub async fn get_work_hour(id: u32) -> AppResult<Option<WorkHour>> {
     let res = sqlx::query!(
         r#"
         SELECT id, name, endTime, status, comment
-        FROM yqwork.work_hours
+        FROM yqwork_new.work_hours
         WHERE id = ? AND deletedAt IS NULL
         "#,
         id
@@ -121,7 +121,7 @@ pub async fn add_work_hour(
     let now = chrono::Utc::now().naive_utc();
     let res = sqlx::query!(
         r#"
-        INSERT INTO yqwork.work_hours (name, endTime, status, comment, createdAt, updatedAt)
+        INSERT INTO yqwork_new.work_hours (name, endTime, status, comment, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?)
         "#,
         name,
@@ -146,7 +146,7 @@ pub async fn update_work_hour(
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.work_hours
+        UPDATE yqwork_new.work_hours
         SET name = ?, endTime = ?, status = ?, comment = ?, updatedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -166,7 +166,7 @@ pub async fn delete_work_hour(work_hour_id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.work_hours
+        UPDATE yqwork_new.work_hours
         SET deletedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -251,7 +251,7 @@ pub async fn get_work_hour_record(
     let res = sqlx::query!(
         r#"
         SELECT id, workHourId, userId, workDescs, includes, comment, status
-        FROM yqwork.work_hours_records
+        FROM yqwork_new.work_hours_records
         WHERE workHourId = ? AND userId = ? AND deletedAt IS NULL
         "#,
         work_hour_id,
@@ -274,7 +274,7 @@ pub async fn get_work_hour_record_by_id(id: u32) -> AppResult<Option<WorkHourRec
     let res = sqlx::query!(
         r#"
         SELECT id, workHourId, userId, workDescs, includes, comment, status
-        FROM yqwork.work_hours_records
+        FROM yqwork_new.work_hours_records
         WHERE id = ? AND deletedAt IS NULL
         "#,
         id
@@ -297,7 +297,7 @@ pub async fn get_work_hour_record_includes(id: u32) -> AppResult<Vec<WorkInclude
     let res = sqlx::query!(
         r#"
         SELECT includes
-        FROM yqwork.work_hours_records
+        FROM yqwork_new.work_hours_records
         WHERE id = ? AND deletedAt IS NULL
         "#,
         id
@@ -320,7 +320,7 @@ pub async fn get_work_hour_record_list(work_hour_id: u32) -> AppResult<Vec<WorkH
     let res = sqlx::query!(
         r#"
         SELECT id, workHourId, userId, workDescs, includes, comment, status
-        FROM yqwork.work_hours_records
+        FROM yqwork_new.work_hours_records
         WHERE workHourId = ? AND deletedAt IS NULL AND status >= 2
         ORDER BY status ASC, id DESC
         "#,
@@ -349,8 +349,8 @@ pub async fn get_work_hour_record_department_list(
     let res = sqlx::query!(
         r#"
         SELECT whr.id, whr.workHourId, whr.userId, whr.workDescs, whr.includes, whr.comment, whr.status
-        FROM yqwork.work_hours_records whr
-        INNER JOIN yqwork.users u
+        FROM yqwork_new.work_hours_records whr
+        INNER JOIN yqwork_new.users u
         ON whr.userId = u.id
         WHERE whr.workHourId = ? AND u.departmentId = ? AND whr.deletedAt IS NULL AND whr.status >= 1
         ORDER BY whr.status ASC, whr.id DESC
@@ -375,7 +375,7 @@ pub async fn get_my_work_hour_record(
     let res = sqlx::query!(
         r#"
         SELECT id, workHourId, userId, workDescs, includes, comment, status
-        FROM yqwork.work_hours_records
+        FROM yqwork_new.work_hours_records
         WHERE workHourId = ? AND userId = ? AND deletedAt IS NULL
         "#,
         work_hour_id,
@@ -406,7 +406,7 @@ pub async fn update_work_hour_record(
     let res = if let Some(id) = sqlx::query_scalar!(
         r#"
         SELECT id
-        FROM yqwork.work_hours_records
+        FROM yqwork_new.work_hours_records
         WHERE workHourId = ? AND userId = ? AND deletedAt IS NULL
         "#,
         work_hour_id,
@@ -417,7 +417,7 @@ pub async fn update_work_hour_record(
     {
         sqlx::query!(
             r#"
-            UPDATE yqwork.work_hours_records
+            UPDATE yqwork_new.work_hours_records
             SET workDescs = ?, includes = ?, comment = ?, status = ?, updatedAt = ?
             WHERE id = ? AND deletedAt IS NULL
             "#,
@@ -440,7 +440,7 @@ pub async fn update_work_hour_record(
         let now = chrono::Utc::now().naive_utc();
         let res = sqlx::query!(
             r#"
-            INSERT INTO yqwork.work_hours_records (workHourId, userId, workDescs, includes, comment, status, createdAt, updatedAt)
+            INSERT INTO yqwork_new.work_hours_records (workHourId, userId, workDescs, includes, comment, status, createdAt, updatedAt)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#,
             work_hour_id,

@@ -74,14 +74,14 @@ pub async fn get_user_list(
     let mut main_query = sqlx::QueryBuilder::new(
         r#"
         SELECT id, username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, lastLogin, departmentId
-        FROM yqwork.users
+        FROM yqwork_new.users
         WHERE deletedAt IS NULL
         "#,
     );
     let mut count_query = sqlx::QueryBuilder::new(
         r#"
         SELECT COUNT(*) as count
-        FROM yqwork.users
+        FROM yqwork_new.users
         WHERE deletedAt IS NULL
         "#,
     );
@@ -151,7 +151,7 @@ pub async fn get_user(user_id: u32) -> AppResult<Option<User>> {
     let res = sqlx::query!(
         r#"
         SELECT id, username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, lastLogin, departmentId
-        FROM yqwork.users
+        FROM yqwork_new.users
         WHERE id = ? AND deletedAt IS NULL
         "#,
         user_id
@@ -181,7 +181,7 @@ pub async fn add_user(info: &UserBasicInfo, password: &str) -> AppResult<u32> {
     let now = chrono::Utc::now().naive_utc();
     let res = sqlx::query!(
         r#"
-        INSERT INTO yqwork.users (username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, departmentId, password, createdAt, updatedAt)
+        INSERT INTO yqwork_new.users (username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, departmentId, password, createdAt, updatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         "#,
         info.username,
@@ -205,7 +205,7 @@ pub async fn update_user(user_id: u32, info: &UserBasicInfo) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.users
+        UPDATE yqwork_new.users
         SET name = ?, stuId = ?, email = ?, xueyuan = ?, gangwei = ?, zaiku = ?, qingonggang = ?, status = ?, departmentId = ?, updatedAt = ?, username = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -231,7 +231,7 @@ pub async fn delete_user(user_id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.users
+        UPDATE yqwork_new.users
         SET deletedAt = ?
         WHERE id = ? AND deletedAt IS NULL
         "#,
@@ -247,7 +247,7 @@ pub async fn delete_user(user_id: u32) -> AppResult<()> {
 //     let now = chrono::Utc::now().naive_utc();
 //     sqlx::query!(
 //         r#"
-//         UPDATE yqwork.users
+//         UPDATE yqwork_new.users
 //         SET departmentId = ?, updatedAt = ?
 //         WHERE id = ?
 //         "#,
@@ -264,7 +264,7 @@ pub async fn get_user_by_stu_id(stu_id: &str) -> AppResult<Option<User>> {
     let res = sqlx::query!(
         r#"
         SELECT id, username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, lastLogin, departmentId
-        FROM yqwork.users
+        FROM yqwork_new.users
         WHERE stuId = ? AND deletedAt IS NULL
         "#,
         stu_id
@@ -294,7 +294,7 @@ pub async fn get_user_password(user_id: u32) -> AppResult<Option<String>> {
     let res = sqlx::query!(
         r#"
         SELECT password
-        FROM yqwork.users
+        FROM yqwork_new.users
         WHERE id = ? AND deletedAt IS NULL
         "#,
         user_id
@@ -309,7 +309,7 @@ pub async fn update_user_password(user_id: u32, password: &str) -> AppResult<()>
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.users
+        UPDATE yqwork_new.users
         SET password = ?, updatedAt = ?
         WHERE id = ?
         "#,
@@ -326,7 +326,7 @@ pub async fn update_user_last_login(user_id: u32) -> AppResult<()> {
     let now = chrono::Utc::now().naive_utc();
     sqlx::query!(
         r#"
-        UPDATE yqwork.users
+        UPDATE yqwork_new.users
         SET lastLogin = ?
         WHERE id = ?
         "#,
