@@ -87,6 +87,9 @@ pub async fn get_role_list() -> AppResult<Vec<Role>> {
 }
 
 pub async fn get_role_permission(role_id: &[u32]) -> AppResult<Permission> {
+    if role_id.is_empty() {
+        return Ok(Permission::new(vec![]));
+    }
     let placeholders = vec!["?"; role_id.len()].join(",");
     let query_str = format!(
         r#"
