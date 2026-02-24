@@ -245,8 +245,8 @@ async fn put_user(req: &mut salvo::Request) -> RouterResult {
             || param.department_id != res_user.info.department_id
             || status != res_user.info.status
             || param.password.is_some()
-            || param.role_id.is_some())
-        || param.xueyuan != res_user.info.xueyuan
+            || param.role_id.is_some()
+            || param.xueyuan != res_user.info.xueyuan)
     {
         return Err(AppError::PermissionDenied);
     }
