@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -118,7 +118,7 @@ pub async fn add_work_hour(
     status: WorkHourStatus,
     comment: Option<&str>,
 ) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
         INSERT INTO yqwork_new.work_hours (name, endTime, status, comment, createdAt, updatedAt)
@@ -143,7 +143,7 @@ pub async fn update_work_hour(
     status: WorkHourStatus,
     comment: Option<&str>,
 ) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.work_hours
@@ -163,7 +163,7 @@ pub async fn update_work_hour(
 }
 
 pub async fn delete_work_hour(work_hour_id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.work_hours
@@ -403,6 +403,7 @@ pub async fn update_work_hour_record(
     comment: Option<&str>,
     status: WorkHourRecordStatus,
 ) -> AppResult<u32> {
+    let now = utils::now_time();
     let res = if let Some(id) = sqlx::query_scalar!(
         r#"
         SELECT id
@@ -430,14 +431,13 @@ pub async fn update_work_hour_record(
                 .map_err(|err| anyhow!("更新工时记录时失败：序列化包含错误 {:?}", err))?,
             comment,
             u32::from(status),
-            chrono::Utc::now().naive_utc(),
+            now,
             id
         )
         .execute(get_db_pool().await)
         .await?;
         id
     } else {
-        let now = chrono::Utc::now().naive_utc();
         let res = sqlx::query!(
             r#"
             INSERT INTO yqwork_new.work_hours_records (workHourId, userId, workDescs, includes, comment, status, createdAt, updatedAt)

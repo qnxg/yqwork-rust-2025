@@ -171,7 +171,7 @@ pub async fn update_goods_record(
 }
 
 pub async fn delete_goods_record(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE weihuda_new.jifen_exchange

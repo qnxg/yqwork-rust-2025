@@ -1,5 +1,5 @@
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, Debug)]
 pub struct Department {
@@ -30,7 +30,7 @@ pub async fn get_department_list() -> AppResult<Vec<Department>> {
 }
 
 pub async fn add_department(name: &str, desc: &str) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
         INSERT INTO yqwork_new.departments (name, `desc`, createdAt, updatedAt)
@@ -47,7 +47,7 @@ pub async fn add_department(name: &str, desc: &str) -> AppResult<u32> {
 }
 
 pub async fn update_department(id: u32, name: &str, desc: &str) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.departments
@@ -65,7 +65,7 @@ pub async fn update_department(id: u32, name: &str, desc: &str) -> AppResult<()>
 }
 
 pub async fn delete_department(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.departments

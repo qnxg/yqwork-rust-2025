@@ -1,7 +1,7 @@
 use sqlx::Row;
 
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -178,7 +178,7 @@ pub async fn get_user(user_id: u32) -> AppResult<Option<User>> {
 }
 
 pub async fn add_user(info: &UserBasicInfo, password: &str) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
         INSERT INTO yqwork_new.users (username, name, stuId, email, xueyuan, gangwei, zaiku, qingonggang, status, departmentId, password, createdAt, updatedAt)
@@ -202,7 +202,7 @@ pub async fn add_user(info: &UserBasicInfo, password: &str) -> AppResult<u32> {
 }
 
 pub async fn update_user(user_id: u32, info: &UserBasicInfo) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.users
@@ -228,7 +228,7 @@ pub async fn update_user(user_id: u32, info: &UserBasicInfo) -> AppResult<()> {
 }
 
 pub async fn delete_user(user_id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.users
@@ -244,7 +244,7 @@ pub async fn delete_user(user_id: u32) -> AppResult<()> {
 }
 
 // pub async fn update_user_department(user_id: u32, department_id: u32) -> AppResult<()> {
-//     let now = chrono::Utc::now().naive_utc();
+//     let now = utils::now_time();
 //     sqlx::query!(
 //         r#"
 //         UPDATE yqwork_new.users
@@ -306,7 +306,7 @@ pub async fn get_user_password(user_id: u32) -> AppResult<Option<String>> {
 }
 
 pub async fn update_user_password(user_id: u32, password: &str) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.users
@@ -323,7 +323,7 @@ pub async fn update_user_password(user_id: u32, password: &str) -> AppResult<()>
 }
 
 pub async fn update_user_last_login(user_id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.users

@@ -1,5 +1,5 @@
 use super::get_db_pool;
-use crate::result::AppResult;
+use crate::{result::AppResult, utils};
 
 #[derive(serde::Serialize, Debug)]
 pub struct PermissionItem {
@@ -57,7 +57,7 @@ pub async fn get_permission_list() -> AppResult<Vec<PermissionItem>> {
 }
 
 pub async fn update_permission(id: u32, name: &str, permission: &str) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.permissions
@@ -75,7 +75,7 @@ pub async fn update_permission(id: u32, name: &str, permission: &str) -> AppResu
 }
 
 pub async fn add_permission(name: &str, permission: &str) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let res = sqlx::query!(
         r#"
         INSERT INTO yqwork_new.permissions (name, permission, createdAt, updatedAt)
@@ -92,7 +92,7 @@ pub async fn add_permission(name: &str, permission: &str) -> AppResult<u32> {
 }
 
 pub async fn delete_permission(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.permissions

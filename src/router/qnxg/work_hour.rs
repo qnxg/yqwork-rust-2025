@@ -264,7 +264,7 @@ async fn put_work_hour_record(req: &mut salvo::Request) -> RouterResult {
                 return Err(AppError::PermissionDenied);
             }
             // 过了截止时间就不能改了
-            if chrono::Utc::now().naive_utc() > work_hour.end_time {
+            if utils::now_time() > work_hour.end_time {
                 return Err(anyhow!("工时记录已过截止时间，不能批准").into());
             }
             service::qnxg::work_hour::accept_work_hour_record(&record).await?;
@@ -366,7 +366,7 @@ async fn put_my_work_hour_record(req: &mut salvo::Request) -> RouterResult {
     let Some(work_hour) = service::qnxg::work_hour::get_work_hour(work_hour_id).await? else {
         return Err(anyhow!("工时记录不存在").into());
     };
-    if chrono::Utc::now().naive_utc() > work_hour.end_time {
+    if utils::now_time() > work_hour.end_time {
         return Err(anyhow!("工时记录已过截止时间，不能修改").into());
     }
     // 已经提交的就不能改了

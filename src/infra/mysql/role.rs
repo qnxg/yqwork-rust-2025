@@ -3,6 +3,7 @@ use sqlx::Row;
 use super::get_db_pool;
 use crate::result::AppResult;
 use crate::service::qnxg::permission::{Permission, PermissionItem};
+use crate::utils;
 
 #[derive(serde::Serialize, Debug)]
 pub struct Role {
@@ -33,7 +34,7 @@ pub async fn get_user_roles(user_id: u32) -> AppResult<Vec<Role>> {
 }
 
 pub async fn update_user_roles(user_id: u32, role_id: &[u32]) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let pool = get_db_pool().await;
 
     let mut tx = pool.begin().await?;
@@ -119,7 +120,7 @@ pub async fn get_role_permission(role_id: &[u32]) -> AppResult<Permission> {
 }
 
 pub async fn update_role(role_id: u32, name: &str, permission: &[u32]) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let pool = get_db_pool().await;
 
     let mut tx = pool.begin().await?;
@@ -167,7 +168,7 @@ pub async fn update_role(role_id: u32, name: &str, permission: &[u32]) -> AppRes
 }
 
 pub async fn add_role(name: &str, permission: &[u32]) -> AppResult<u32> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     let pool = get_db_pool().await;
 
     let mut tx = pool.begin().await?;
@@ -205,7 +206,7 @@ pub async fn add_role(name: &str, permission: &[u32]) -> AppResult<u32> {
 }
 
 pub async fn delete_role(id: u32) -> AppResult<()> {
-    let now = chrono::Utc::now().naive_utc();
+    let now = utils::now_time();
     sqlx::query!(
         r#"
         UPDATE yqwork_new.roles
