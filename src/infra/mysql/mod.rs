@@ -17,7 +17,7 @@ use std::time::Duration;
 use crate::config::CFG;
 
 static DB_POOL: tokio::sync::OnceCell<sqlx::MySqlPool> = tokio::sync::OnceCell::const_new();
-async fn get_db_pool() -> &'static sqlx::MySqlPool {
+pub async fn get_db_pool() -> &'static sqlx::MySqlPool {
     DB_POOL
         .get_or_init(|| async {
             sqlx::mysql::MySqlPoolOptions::new()

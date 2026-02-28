@@ -434,6 +434,7 @@ pub async fn get_record(id: u32) -> AppResult<Option<JifenRecord>> {
 }
 
 pub async fn add_record(
+    tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
     key: &str,
     param: &str,
     stu_id: &str,
@@ -453,12 +454,16 @@ pub async fn add_record(
         jifen,
         now
     )
-    .execute(get_db_pool().await)
+    .execute(&mut **tx)
     .await?;
     Ok(res.last_insert_id() as u32)
 }
 
-pub async fn update_jifen(stu_id: &str, delta: i32) -> AppResult<()> {
+pub async fn update_jifen(
+    tx: &mut sqlx::Transaction<'_, sqlx::MySql>,
+    stu_id: &str,
+    delta: i32,
+) -> AppResult<()> {
     let now = utils::now_time();
     sqlx::query!(
         r#"
@@ -470,7 +475,7 @@ pub async fn update_jifen(stu_id: &str, delta: i32) -> AppResult<()> {
         now,
         stu_id
     )
-    .execute(get_db_pool().await)
+    .execute(&mut **tx)
     .await?;
     Ok(())
 }

@@ -1,5 +1,5 @@
 use crate::result::{AppError, RouterResult};
-use crate::service::weihuda::jifen::GoodsRecordStatus;
+use crate::service::weihuda::jifen::{AddRecordBatchItem, GoodsRecordStatus};
 use crate::{service, utils};
 use anyhow::anyhow;
 use salvo::handler;
@@ -37,7 +37,8 @@ pub fn routers() -> salvo::Router {
             salvo::Router::with_path("jifen-record")
                 .get(get_record_list)
                 .post(post_record)
-                .push(salvo::Router::with_path("{id}").get(get_record)),
+                .push(salvo::Router::with_path("{id}").get(get_record))
+                .push(salvo::Router::with_path("batch").post(post_record_batch)),
         )
         .push(
             salvo::Router::with_path("jifen-rule")
@@ -379,6 +380,25 @@ async fn post_record(req: &mut salvo::Request) -> RouterResult {
         .await?
         .ok_or(anyhow!("新增积分记录失败"))?;
     Ok(record.into())
+}
+
+#[handler]
+async fn post_record_batch(req: &mut salvo::Request) -> RouterResult {
+    let user = utils::auth::parse_token(req).await?;
+    if !service::qnxg::user::get_user_permission(user.id)
+        .await?
+        .has(&format!("{}:add", JIFEN_RECORD_PERMISSION_PREFIX))
+    {
+        return Err(AppError::PermissionDenied);
+    }
+    #[derive(serde::Deserialize, Extractible, Debug)]
+    #[salvo(extract(default_source(from = "body"), rename_all = "camelCase"))]
+    struct PostRecordBatchReq {
+        items: Vec<AddRecordBatchItem>,
+    }
+    let PostRecordBatchReq { items } = req.extract().await?;
+    service::weihuda::jifen::add_record_batch(items, &user).await?;
+    Ok(().into())
 }
 
 #[handler]
