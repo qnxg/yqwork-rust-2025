@@ -18,8 +18,10 @@ pub async fn get_user_permission(user_id: u32) -> AppResult<Permission> {
     Ok(permission)
 }
 
+/// password 参数为明文
 pub async fn add_user(info: &UserBasicInfo, password: &str, role_id: &[u32]) -> AppResult<u32> {
-    let user_id = infra::mysql::user::add_user(info, password).await?;
+    let password = utils::md5_hash(password);
+    let user_id = infra::mysql::user::add_user(info, &password).await?;
     service::qnxg::role::update_user_roles(user_id, role_id).await?;
     Ok(user_id)
 }
