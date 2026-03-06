@@ -2,7 +2,6 @@ mod announcement;
 mod config;
 mod feedback;
 mod jifen;
-mod left_message;
 mod notice;
 mod zhihu;
 
@@ -12,7 +11,6 @@ pub fn routers() -> salvo::Router {
         .push(config::routers())
         .push(feedback::routers())
         .push(jifen::routers())
-        // .push(left_message::routers())
         .push(zhihu::routers())
         .push(notice::routers())
 }

@@ -2,16 +2,15 @@ pub mod announcement;
 pub mod department;
 pub mod feedback;
 pub mod jifen;
-pub mod left_message;
 pub mod mail;
 pub mod mini_config;
+pub mod notice;
 pub mod permission;
 pub mod recruitment;
 pub mod role;
 pub mod user;
 pub mod work_hour;
 pub mod zhihu;
-pub mod notice;
 
 use std::time::Duration;
 
