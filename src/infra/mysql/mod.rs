@@ -11,6 +11,7 @@ pub mod role;
 pub mod user;
 pub mod work_hour;
 pub mod zhihu;
+pub mod notice;
 
 use std::time::Duration;
 
