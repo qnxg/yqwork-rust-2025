@@ -96,7 +96,8 @@ async fn post(req: &mut salvo::Request) -> RouterResult {
         is_show,
         url,
     } = req.extract().await?;
-    let notice_id = service::weihuda::notice::add_notice(stu_id, content, is_show, url).await?;
+    let notice_id =
+        service::weihuda::notice::add_notice(&stu_id, &content, is_show, url.as_deref()).await?;
     let new_notice = service::weihuda::notice::get_notice(notice_id)
         .await?
         .ok_or(anyhow!("添加消息失败"))?;

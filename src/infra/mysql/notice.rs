@@ -150,10 +150,10 @@ pub async fn get_notice(id: u32) -> AppResult<Option<Notice>> {
 }
 
 pub async fn add_notice(
-    stu_id: String,
-    content: String,
+    stu_id: &str,
+    content: &str,
     is_show: bool,
-    url: Option<String>,
+    url: Option<&str>,
 ) -> AppResult<u32> {
     let now = utils::now_time();
     let res = sqlx::query!(
