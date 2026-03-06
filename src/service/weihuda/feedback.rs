@@ -12,6 +12,7 @@ pub async fn add_feedback_msg(
     feedback: &Feedback,
     user: &User,
 ) -> AppResult<u32> {
-    infra::mysql::feedback::add_feedback_msg(typ, msg, &user.info.stu_id, feedback.id).await?;
-    Ok(feedback.id)
+    let feedback_msg_id =
+        infra::mysql::feedback::add_feedback_msg(typ, msg, &user.info.stu_id, feedback.id).await?;
+    Ok(feedback_msg_id)
 }
