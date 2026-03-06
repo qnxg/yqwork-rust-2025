@@ -70,60 +70,38 @@ pub async fn get_feedback_list(
         r#"
         SELECT id, contact, createdAt, `desc`, imgUrl, stuId, updatedAt, status
         FROM weihuda_new.feedbacks
+        WHERE deletedAt IS NULL
     "#,
     );
     let mut count_query: sqlx::QueryBuilder<sqlx::MySql> = sqlx::QueryBuilder::new(
         r#"
         SELECT COUNT(*) AS count
         FROM weihuda_new.feedbacks
+        WHERE deletedAt IS NULL
     "#,
     );
 
-    if stu_id.is_some() || status.is_some() || from.is_some() || to.is_some() {
-        main_query.push(" WHERE ");
-        count_query.push(" WHERE ");
-    }
-    let mut first_condition = true;
     if let Some(stu_id) = stu_id {
-        if !first_condition {
-            main_query.push(" AND ");
-            count_query.push(" AND ");
-        }
-        main_query.push("stuId LIKE ");
-        count_query.push("stuId LIKE ");
+        main_query.push(" AND stuId LIKE ");
+        count_query.push(" AND stuId LIKE ");
         main_query.push_bind(format!("%{}%", stu_id));
         count_query.push_bind(format!("%{}%", stu_id));
-        first_condition = false;
     }
     if let Some(status) = status {
-        if !first_condition {
-            main_query.push(" AND ");
-            count_query.push(" AND ");
-        }
-        main_query.push("status = ");
-        count_query.push("status = ");
+        main_query.push(" AND status = ");
+        count_query.push(" AND status = ");
         main_query.push_bind(u32::from(status));
         count_query.push_bind(u32::from(status));
-        first_condition = false;
     }
     if let Some(from) = from {
-        if !first_condition {
-            main_query.push(" AND ");
-            count_query.push(" AND ");
-        }
-        main_query.push("createdAt >= ");
-        count_query.push("createdAt >= ");
+        main_query.push(" AND createdAt >= ");
+        count_query.push(" AND createdAt >= ");
         main_query.push_bind(from.clone());
         count_query.push_bind(from);
-        first_condition = false;
     }
     if let Some(to) = to {
-        if !first_condition {
-            main_query.push(" AND ");
-            count_query.push(" AND ");
-        }
-        main_query.push("createdAt <= ");
-        count_query.push("createdAt <= ");
+        main_query.push(" AND createdAt <= ");
+        count_query.push(" AND createdAt <= ");
         main_query.push_bind(to.clone());
         count_query.push_bind(to);
     }
